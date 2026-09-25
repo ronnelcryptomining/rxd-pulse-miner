@@ -211,7 +211,7 @@
     let QUEST1 = 100;
     let QUEST2 = 25;
     const WAVE1 = ["discord", "telegram", "x", "youtube", "facebook"];
-    const KEY = "rxd-pulse-v8";
+    const KEY = "rxd-pulse-v16";
     const API = localStorage.getItem("rxd-api") || "/api";
     const CIRC = 2 * Math.PI * 108;
     const AudioBus = (function() {
@@ -303,6 +303,10 @@
         const name = q.quest || q;
         state.quests[name] = { completed: q.completed_at || 0, started: q.started_at || 0 };
       });
+      Object.keys(state.pending || {}).forEach(function(name) {
+        const q = state.quests[name];
+        if (!q || !q.started || (q.completed && q.completed >= q.started)) delete state.pending[name];
+      });
       save();
     }
     function isPhotonicAddress(v) {
@@ -384,11 +388,12 @@
         const wave2 = el.classList.contains("wave2");
         if (el.classList.contains("wave1")) el.classList.toggle("hidden", questDone(name));
         if (wave2) el.classList.toggle("hidden", !showWave2);
+        const q = state.quests[name] || {};
         const pending = state.pending[name];
         const left = wave2 ? wave2Left(name) : 0;
         if (wave2 && left > 0) setBtn(btn, "timer", fmt(left));
-        else if (pending && Date.now() < pending) setBtn(btn, "verify", "Verifying");
-        else if (pending && Date.now() >= pending) setBtn(btn, "claim", "CLAIM");
+        else if (pending && q.started && Date.now() < pending) setBtn(btn, "verify", "Verifying");
+        else if (pending && q.started && Date.now() >= pending && !questDone(name)) setBtn(btn, "claim", "CLAIM");
         else setBtn(btn, "go", "Go");
       });
       $("refCode").value = referralLink();
