@@ -23,6 +23,7 @@ import {
   leaderboard,
   resetAll,
   wave1Complete,
+  wave2Complete,
 } from "./db.js";
 import { dryRun, treasuryAddress, treasuryBalance } from "./payout.js";
 
@@ -224,10 +225,11 @@ app.post("/api/blitz", (req, res) => {
     const user = getUser(id);
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
     touchStreak(id);
-    if (!BLITZ_TEST && !blitzUnlocked(id)) return res.status(403).json({ error: "Locked" });
+    const kind = req.body.kind === "wave2" ? "wave2" : "streak";
+    const allowed = kind === "wave2" ? wave2Complete(id) : blitzUnlocked(id);
+    if (!BLITZ_TEST && !allowed) return res.status(403).json({ error: "Locked" });
     const hits = Math.max(0, Math.min(80, Number(req.body.hits || 0)));
     const amountRxd = Number((hits * 0.01).toFixed(2));
-    const kind = wave1Complete(id) && req.body.kind !== "streak" ? "wave2" : "streak";
     markBlitz(id, kind);
     if (amountRxd > 0) {
       enqueuePayout({
@@ -264,9 +266,8 @@ app.post("/api/quest/:name", (req, res) => {
     const id = userIdFromReq(req);
     const user = getUser(id);
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
-    if (WAVE2.includes(name)) startQuest(id, name);
     const row = getQuest(id, name);
-    if (WAVE1.includes(name) && (!row || !row.started_at || Date.now() - row.started_at < VERIFY_MS)) {
+    if (!row || !row.started_at || Date.now() - row.started_at < VERIFY_MS) {
       return res.status(429).json({ error: "Still verifying" });
     }
     const resetAt = WAVE1.includes(name) ? (user.wave1_reset_at || 0) : (user.wave2_reset_at || 0);
