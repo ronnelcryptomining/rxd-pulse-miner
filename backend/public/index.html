@@ -388,12 +388,11 @@
         const wave2 = el.classList.contains("wave2");
         if (el.classList.contains("wave1")) el.classList.toggle("hidden", questDone(name));
         if (wave2) el.classList.toggle("hidden", !showWave2);
-        const q = state.quests[name] || {};
         const pending = state.pending[name];
         const left = wave2 ? wave2Left(name) : 0;
         if (wave2 && left > 0) setBtn(btn, "timer", fmt(left));
-        else if (pending && q.started && Date.now() < pending) setBtn(btn, "verify", "Verifying");
-        else if (pending && q.started && Date.now() >= pending && !questDone(name)) setBtn(btn, "claim", "CLAIM");
+        else if (pending && Date.now() < pending) setBtn(btn, "verify", "Verifying");
+        else if (pending && Date.now() >= pending && !questDone(name)) setBtn(btn, "claim", "CLAIM");
         else setBtn(btn, "go", "Go");
       });
       $("refCode").value = referralLink();
@@ -486,7 +485,10 @@
         try {
           await api("/quest/" + quest + "/start", { method: "POST", body: JSON.stringify(identity()) });
           state.pending[quest] = Date.now() + VERIFY_MS;
+          state.quests[quest] = state.quests[quest] || {};
+          state.quests[quest].started = Date.now();
           save();
+          setBtn(btn, "verify", "Verifying");
           renderQuests();
         } catch (err) { alert(err.message); }
       };
