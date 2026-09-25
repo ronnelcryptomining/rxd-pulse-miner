@@ -37,6 +37,7 @@ function ensureUserFields(user) {
   if (user.wave1_reset_at === undefined) user.wave1_reset_at = 0;
   if (user.wave2_reset_at === undefined) user.wave2_reset_at = 0;
   if (user.blitz_count === undefined) user.blitz_count = 0;
+  if (user.streak_blitz_used === undefined) user.streak_blitz_used = false;
   return user;
 }
 
@@ -54,8 +55,12 @@ export function touchStreak(id) {
   const today = todayKey();
   if (user.last_active_day === today) return user;
   if (user.last_active_day === yesterdayKey()) user.streak = (user.streak || 0) + 1;
-  else user.streak = 1;
+  else {
+    user.streak = 1;
+    user.streak_blitz_used = false;
+  }
   user.last_active_day = today;
+  if (user.streak === 4) user.wave1_reset_at = Date.now();
   save(db);
   return user;
 }
@@ -65,7 +70,7 @@ export function markBlitz(id, kind) {
   if (!user) return null;
   user.last_blitz_day = todayKey();
   user.blitz_count = (user.blitz_count || 0) + 1;
-  if (kind === "streak") user.wave1_reset_at = Date.now();
+  if (kind === "streak") user.streak_blitz_used = true;
   if (kind === "wave2") user.wave2_reset_at = Date.now();
   save(db);
   return user;
@@ -255,8 +260,7 @@ export function wave2Complete(id) {
 export function blitzUnlocked(id) {
   const user = getUser(id);
   if (!user || !user.address) return false;
-  if ((user.streak || 0) >= 5 && user.last_blitz_day !== todayKey()) return true;
-  return wave2Complete(id);
+  return (user.streak || 0) >= 5 && !user.streak_blitz_used;
 }
 
 export function leaderboard(limit = 20) {
