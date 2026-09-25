@@ -158,10 +158,10 @@
         <div class="task-card wave1" data-quest="x" data-reward="100"><div class="ico">X</div><div class="meta"><div class="t">Follow RXD Pulse on X</div><div class="r">+100 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer?s=11">Go</button></div>
         <div class="task-card wave1" data-quest="youtube" data-reward="100"><div class="ico">Y</div><div class="meta"><div class="t">Subscribe on YouTube</div><div class="r">+100 RXD</div></div><button class="btn q-btn" data-url="https://youtube.com/@rxdpulseminer?si=bNyjQ3OXjbaZlGuU">Go</button></div>
         <div class="task-card wave1" data-quest="facebook" data-reward="100"><div class="ico">F</div><div class="meta"><div class="t">Follow RXD Pulse on Facebook</div><div class="r">+100 RXD</div></div><button class="btn q-btn" data-url="https://www.facebook.com/share/1DsG5GnaJF/?mibextid=wwXIfr">Go</button></div>
-        <div class="task-card wave2" data-quest="visit_yt" data-reward="25"><div class="ico">Y</div><div class="meta"><div class="t">Watch RXD Pulse videos on YT</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://youtube.com/@rxdpulseminer?si=lItwmnS40EBCYgX2">Go</button></div>
-        <div class="task-card wave2" data-quest="visit_x" data-reward="25"><div class="ico">X</div><div class="meta"><div class="t">Visit RXD Pulse on X</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer?s=11">Go</button></div>
-        <div class="task-card wave2" data-quest="visit_fb" data-reward="25"><div class="ico">F</div><div class="meta"><div class="t">Visit RXD Pulse on FB</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://www.facebook.com/share/19gu5tuZth/?mibextid=wwXIfr">Go</button></div>
-        <div class="task-card wave2" data-quest="visit_web" data-reward="25"><div class="ico">R</div><div class="meta"><div class="t">Visit Radiant Website</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://radiantblockchain.org/">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_yt" data-reward="25"><div class="ico">Y</div><div class="meta"><div class="t">Watch RXD Pulse videos on YT</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://youtube.com/@rxdpulseminer?si=lItwmnS40EBCYgX2">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_x" data-reward="25"><div class="ico">X</div><div class="meta"><div class="t">Visit RXD Pulse on X</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer?s=11">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_fb" data-reward="25"><div class="ico">F</div><div class="meta"><div class="t">Visit RXD Pulse on FB</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://www.facebook.com/share/19gu5tuZth/?mibextid=wwXIfr">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_web" data-reward="25"><div class="ico">R</div><div class="meta"><div class="t">Visit Radiant Website</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://radiantblockchain.org/">Go</button></div>
       </div>
     </section>
     <section class="screen" id="screen-wallet">
@@ -377,7 +377,7 @@
       btn.dataset.mode = mode;
     }
     function renderQuests() {
-      const showWave2 = true;
+      const showWave2 = wave1Done();
       document.querySelectorAll(".task-card[data-quest]").forEach(function(el) {
         const name = el.dataset.quest;
         const btn = el.querySelector(".q-btn");
@@ -387,7 +387,6 @@
         const pending = state.pending[name];
         const left = wave2 ? wave2Left(name) : 0;
         if (wave2 && left > 0) setBtn(btn, "timer", fmt(left));
-        else if (wave2) setBtn(btn, "claim", "CLAIM");
         else if (pending && Date.now() < pending) setBtn(btn, "verify", "Verifying");
         else if (pending && Date.now() >= pending) setBtn(btn, "claim", "CLAIM");
         else setBtn(btn, "go", "Go");
@@ -474,7 +473,7 @@
             delete state.pending[quest];
             save();
             renderAll();
-            if (state.wave2Done && state.blitzReady) startCinematic();
+            if (state.wave2Done) startCinematic("wave2");
           } catch (err) { alert(err.message); }
           return;
         }
@@ -490,6 +489,7 @@
     function renderAll() { renderMine(); renderQuests(); renderWallet(); }
     let stormTimer = null;
     let stormHits = 0;
+    let stormKind = "streak";
     function spawnBolt() {
       const storm = $("storm");
       const el = document.createElement("div");
@@ -517,7 +517,7 @@
       $("storm").classList.add("on");
       let earned = Number((hits * 0.01).toFixed(2));
       try {
-        const res = await api("/blitz", { method: "POST", body: JSON.stringify(Object.assign({ hits: hits, kind: state.wave2Done ? "wave2" : "streak" }, identity())) });
+        const res = await api("/blitz", { method: "POST", body: JSON.stringify(Object.assign({ hits: hits, kind: stormKind }, identity())) });
         applyServer(res.state);
         if (res.amountRxd != null) earned = Number(res.amountRxd);
       } catch (e) {}
@@ -538,8 +538,9 @@
       stormTimer = setInterval(spawnBolt, 220);
       setTimeout(endStorm, 15000);
     }
-    function startCinematic() {
+    function startCinematic(kind) {
       if (stormTimer) return;
+      stormKind = kind || "streak";
       $("storm").innerHTML = "";
       $("storm").classList.add("on", "intro");
       AudioBus.thunder();
@@ -552,15 +553,10 @@
     }
     $("tagline").onclick = function() {
       if (!state.address || !state.blitzReady) return;
-      startCinematic();
+      startCinematic("streak");
     };
     (async function() {
       try {
-        if (!localStorage.getItem("rxd-reset-v8")) {
-          await fetch((localStorage.getItem("rxd-api") || "/api") + "/dev/reset", { method: "POST" }).catch(function(){});
-          localStorage.setItem("rxd-reset-v8", "1");
-          localStorage.removeItem(KEY);
-        }
         const cfg = await api("/config");
         CLAIM_MS = cfg.claimMs; WAVE1_MS = cfg.wave1Ms || WAVE1_MS; WAVE2_MS = cfg.wave2Ms || WAVE2_MS; VERIFY_MS = cfg.verifyMs || VERIFY_MS;
         CLAIM_AMT = cfg.claimRxd; QUEST1 = cfg.quest1Rxd || QUEST1; QUEST2 = cfg.quest2Rxd || QUEST2;
