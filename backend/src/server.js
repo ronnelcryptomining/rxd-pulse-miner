@@ -24,6 +24,7 @@ import {
   resetAll,
   wave1Complete,
   wave2Complete,
+  resolveUserId,
 } from "./db.js";
 import { dryRun, treasuryAddress, treasuryBalance } from "./payout.js";
 
@@ -81,11 +82,12 @@ function looksLikeAddress(v) {
 }
 
 function userIdFromReq(req) {
-  const tg = req.body?.telegramId || req.headers["x-telegram-id"];
-  if (tg && /^\d{3,20}$/.test(String(tg))) return `tg:${tg}`;
-  const fallback = req.body?.clientId || req.query?.clientId || req.headers["x-client-id"];
-  if (fallback && /^[a-zA-Z0-9_-]{8,80}$/.test(String(fallback))) return `web:${fallback}`;
-  throw Object.assign(new Error("Missing user id"), { status: 400 });
+  const body = req.body || {};
+  const query = req.query || {};
+  return resolveUserId({
+    telegramId: body.telegramId || query.telegramId || req.headers["x-telegram-id"],
+    clientId: body.clientId || query.clientId || req.headers["x-client-id"],
+  });
 }
 
 function questReward(name) {
@@ -178,10 +180,10 @@ app.post("/api/disconnect", (req, res) => {
 
 app.get("/api/me", (req, res) => {
   try {
-    const id = userIdFromReq({ body: req.query, headers: req.headers });
+    const id = userIdFromReq(req);
     touchStreak(id);
     const state = userState(id);
-    if (!state) return res.status(404).json({ error: "Not connected" });
+    if (!state || !state.address) return res.status(404).json({ error: "Not connected" });
     res.json({
       ...state,
       nextClaimAt: state.lastClaimAt ? state.lastClaimAt + CLAIM_MS : 0,
