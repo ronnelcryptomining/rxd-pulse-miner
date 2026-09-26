@@ -179,7 +179,7 @@
         <div class="row">
           <button class="btn" id="connectBtn">Connect</button>
           <button class="btn" id="disconnectBtn">Disconnect</button>
-          <a class="btn" href="https://photonic-wallet.com" target="_blank" rel="noopener">Create Wallet</a>
+          <button class="btn" type="button" id="createWalletBtn">Create Wallet</button>
         </div>
         <p class="note">Create a wallet at photonic-wallet.com first. Paste the public receive address only. Never paste a seed phrase or password. One Telegram account can use one wallet.</p>
         <p class="note" id="addrError" style="color:#ff8a8a;display:none"></p>
@@ -304,6 +304,28 @@
     const telegramName = (tgUser && (tgUser.first_name || tgUser.username)) || "";
     function identity() {
       return { clientId, telegramId, telegramUsername, telegramName, ref: state.pendingRef || "", startParam: startParam || state.pendingRef || "", savedScore: Number(state.claimed || localStorage.getItem("rxd-claimed") || 0) };
+    }
+    function openOut(url) {
+      if (!url) return;
+      const web = window.Telegram && window.Telegram.WebApp;
+      const isTg = /^(https?:\/\/)?(t\.me|telegram\.me)\//i.test(url);
+      try {
+        if (web && isTg && web.openTelegramLink) {
+          web.openTelegramLink(url);
+          return;
+        }
+        if (web && web.openLink) {
+          web.openLink(url, { try_instant_view: false });
+          return;
+        }
+      } catch (e) {}
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
     async function api(path, opts) {
       opts = opts || {};
@@ -450,6 +472,9 @@
         errEl.textContent = err.message;
       }
     };
+    $("createWalletBtn").onclick = function() {
+      openOut("https://photonic-wallet.com");
+    };
     $("disconnectBtn").onclick = async function() {
       try { await api("/disconnect", { method: "POST", body: JSON.stringify(identity()) }); } catch (e) {}
       state.address = "";
@@ -468,7 +493,7 @@
     $("timer").onclick = function() { if (!state.address) showTab("wallet"); };
     $("payoutBtn").onclick = function() { return false; };
     $("boardBtn").onclick = function() {
-      window.open("https://www.coingecko.com/en/coins/radiant?chart=type%3Dprice%26mode%3Dnull%26timeframe%3Dnull", "_blank", "noopener");
+      openOut("https://www.coingecko.com/en/coins/radiant?chart=type%3Dprice%26mode%3Dnull%26timeframe%3Dnull");
     };
     $("boardClose").onclick = function() { $("board").classList.remove("on"); };
     $("orb").onclick = async function() {
@@ -502,7 +527,7 @@
           } catch (err) { alert(err.message); }
           return;
         }
-        window.open(btn.dataset.url, "_blank", "noopener");
+        openOut(btn.dataset.url);
         try {
           await api("/quest/" + quest + "/start", { method: "POST", body: JSON.stringify(identity()) });
           state.pending[quest] = Date.now() + VERIFY_MS;
