@@ -193,7 +193,7 @@
         </div>
         <div class="wallet-bottom">
           <div class="ath-static">ALL TIME HIGH $0.00918</div>
-          <button class="btn ghost wide" id="boardBtn">RXD on COINGECKO</button>
+          <button class="btn ghost wide" id="boardBtn">LEADERBOARD</button>
           <button class="btn wide disabled" id="payoutBtn" disabled title="Coming later">CLAIM RXD TOKENS</button>
         </div>
       </div>
@@ -496,8 +496,18 @@
     $("chip").onclick = function() { if (!state.address) showTab("wallet"); };
     $("timer").onclick = function() { if (!state.address) showTab("wallet"); };
     $("payoutBtn").onclick = function() { return false; };
-    $("boardBtn").onclick = function() {
-      openOut("https://www.coingecko.com/en/coins/radiant?chart=type%3Dprice%26mode%3Dnull%26timeframe%3Dnull");
+    $("boardBtn").onclick = async function() {
+      $("board").classList.add("on");
+      $("boardList").innerHTML = "Loading…";
+      try {
+        const data = await api("/leaderboard");
+        const rows = data.players || [];
+        if (!rows.length) $("boardList").innerHTML = "<div class='note'>No scores yet.</div>";
+        else $("boardList").innerHTML = rows.map(function(p, i) {
+          const tag = p.name || "Player";
+          return "<div class='rowline'><span class='rank'>" + (i + 1) + "</span><span>" + tag + "</span><span>" + Number(p.score || 0).toFixed(2) + "</span></div>";
+        }).join("");
+      } catch (e) { $("boardList").textContent = e.message; }
     };
     $("boardClose").onclick = function() { $("board").classList.remove("on"); };
     async function ensureWallet() {
@@ -610,12 +620,15 @@
       const hits = stormHits;
       $("storm").classList.remove("intro");
       $("storm").classList.add("on");
+      const before = Number(state.claimed || 0);
       let earned = Number((hits * 0.01).toFixed(2));
       try {
         const res = await api("/blitz", { method: "POST", body: JSON.stringify(Object.assign({ hits: hits, kind: stormKind }, identity())) });
         applyServer(res.state);
         if (res.amountRxd != null) earned = Number(res.amountRxd);
       } catch (e) {}
+      state.claimed = Math.max(Number(state.claimed || 0), before + earned);
+      save();
       $("storm").innerHTML = "<div class='storm-result'><div class='big'>" + hits + "</div><div class='sub'>LIGHTNING TAPPED</div><div class='sub'>+" + earned + " RXD</div></div>";
       stormHits = 0;
       renderAll();
@@ -697,12 +710,15 @@
       clearInterval(surgeTimer);
       surgeTimer = null;
       const hits = surgeHits;
+      const before = Number(state.claimed || 0);
       let earned = Number((hits * 0.02).toFixed(2));
       try {
         const res = await api("/surge", { method: "POST", body: JSON.stringify(Object.assign({ hits: hits }, identity())) });
         applyServer(res.state);
         if (res.amountRxd != null) earned = Number(res.amountRxd);
       } catch (e) {}
+      state.claimed = Math.max(Number(state.claimed || 0), before + earned);
+      save();
       $("storm").innerHTML = "<div class='storm-result'><div class='big'>" + hits + "</div><div class='sub'>CORES CAUGHT</div><div class='sub'>+" + earned + " RXD</div></div>";
       surgeHits = 0;
       renderAll();
