@@ -43,7 +43,7 @@ app.get("/", (_req, res) => {
   res.status(404).send("index.html not found. Put it next to the backend folder.");
 });
 
-const CLAIM_MS = Number(process.env.CLAIM_COOLDOWN_MS || 3 * 60 * 60 * 1000);
+const CLAIM_MS = Number(process.env.CLAIM_COOLDOWN_MS || 60 * 60 * 1000);
 const CLAIM_RXD = Number(process.env.CLAIM_RXD || 10);
 const QUEST1_RXD = Number(process.env.QUEST1_RXD || 100);
 const QUEST2_RXD = Number(process.env.QUEST2_RXD || 25);
