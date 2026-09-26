@@ -198,12 +198,29 @@ app.get("/api/me", (req, res) => {
   }
 });
 
+function bindWallet(req, id) {
+  const address = String(req.body?.address || "").trim();
+  let user = getUser(id);
+  if ((!user || !user.address) && looksLikeAddress(address)) {
+    upsertUser(id, address, {
+      verified: true,
+      telegramId: req.body?.telegramId || req.headers["x-telegram-id"] || "",
+      telegramUsername: req.body?.telegramUsername || "",
+      telegramName: String(req.body?.telegramName || "").slice(0, 64),
+    });
+    user = getUser(id);
+  }
+  if (user && !user.verified && user.address) {
+    user.verified = true;
+  }
+  return user;
+}
+
 app.post("/api/claim", (req, res) => {
   try {
     const id = userIdFromReq(req);
-    const user = getUser(id);
+    const user = bindWallet(req, id);
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
-    if (!user.verified) return res.status(400).json({ error: "Finish the human check first" });
     const now = Date.now();
     if (user.last_claim_at && now - user.last_claim_at < CLAIM_MS) {
       return res.status(429).json({
@@ -229,7 +246,7 @@ app.post("/api/claim", (req, res) => {
 app.post("/api/blitz", (req, res) => {
   try {
     const id = userIdFromReq(req);
-    const user = getUser(id);
+    const user = bindWallet(req, id);
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
     touchStreak(id);
     const kind = req.body.kind === "wave2" ? "wave2" : "streak";
@@ -255,7 +272,7 @@ app.post("/api/blitz", (req, res) => {
 app.post("/api/surge", (req, res) => {
   try {
     const id = userIdFromReq(req);
-    const user = getUser(id);
+    const user = bindWallet(req, id);
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
     if (!surgeReady(id)) return res.status(429).json({ error: "Surge cooling down" });
     const hits = Math.max(0, Math.min(120, Number(req.body.hits || 0)));
@@ -280,7 +297,7 @@ app.post("/api/quest/:name/start", (req, res) => {
     const name = req.params.name;
     if (!QUESTS[name]) return res.status(400).json({ error: "Unknown quest" });
     const id = userIdFromReq(req);
-    const user = getUser(id);
+    const user = bindWallet(req, id);
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
     const row = startQuest(id, name);
     res.json({ ok: true, startedAt: row.started_at, verifyMs: VERIFY_MS });
@@ -294,7 +311,7 @@ app.post("/api/quest/:name", (req, res) => {
     const name = req.params.name;
     if (!QUESTS[name]) return res.status(400).json({ error: "Unknown quest" });
     const id = userIdFromReq(req);
-    const user = getUser(id);
+    const user = bindWallet(req, id);
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
     const row = getQuest(id, name);
     if (!row || !row.started_at || Date.now() - row.started_at < VERIFY_MS) {
