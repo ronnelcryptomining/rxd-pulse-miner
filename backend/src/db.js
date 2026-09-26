@@ -381,7 +381,7 @@ export function userState(id) {
     wave2Done: wave2Complete(id),
     blitzReady: blitzUnlocked(id),
     blitzCount: user.blitz_count || 0,
-    payoutEligible: referralCount(user.referral_code) >= 5 && (user.blitz_count || 0) >= 200,
+    payoutEligible: referralCount(user.referral_code) >= 5 && (user.blitz_count || 0) >= 250,
   };
 }
 
