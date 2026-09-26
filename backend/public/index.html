@@ -303,7 +303,7 @@
     }
     const telegramName = (tgUser && (tgUser.first_name || tgUser.username)) || "";
     function identity() {
-      return { clientId, telegramId, telegramUsername, telegramName, ref: state.pendingRef || "", startParam: startParam || state.pendingRef || "", savedScore: Number(state.claimed || localStorage.getItem("rxd-claimed") || 0) };
+      return { clientId, telegramId, telegramUsername, telegramName, ref: state.pendingRef || "", startParam: startParam || state.pendingRef || "", savedScore: Number(state.claimed || localStorage.getItem("rxd-claimed") || 0), address: state.address || localStorage.getItem("rxd-addr") || "" };
     }
     function openOut(url) {
       if (!url) return;
@@ -496,11 +496,28 @@
       openOut("https://www.coingecko.com/en/coins/radiant?chart=type%3Dprice%26mode%3Dnull%26timeframe%3Dnull");
     };
     $("boardClose").onclick = function() { $("board").classList.remove("on"); };
+    async function ensureWallet() {
+      const addr = state.address || localStorage.getItem("rxd-addr") || "";
+      if (!isPhotonicAddress(addr)) return false;
+      state.address = addr;
+      try {
+        applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({ address: addr }, identity())) }));
+      } catch (e) {}
+      return !!state.address;
+    }
     $("orb").onclick = async function() {
-      if (!state.address) { showTab("wallet"); return; }
+      if (!(state.address || localStorage.getItem("rxd-addr"))) { showTab("wallet"); return; }
       if (remainingClaim() > 0) return;
       try {
-        const res = await api("/claim", { method: "POST", body: JSON.stringify(identity()) });
+        if (!state.address) await ensureWallet();
+        let res;
+        try {
+          res = await api("/claim", { method: "POST", body: JSON.stringify(identity()) });
+        } catch (first) {
+          if (!/wallet/i.test(String(first.message || ""))) throw first;
+          await ensureWallet();
+          res = await api("/claim", { method: "POST", body: JSON.stringify(identity()) });
+        }
         applyServer(res.state);
         AudioBus.claim();
         $("toast").textContent = "+" + CLAIM_AMT + " RXD queued";
@@ -647,10 +664,25 @@
       const grab = function(e) {
         e.preventDefault();
         e.stopPropagation();
+        if (el.dataset.hit) return;
+        el.dataset.hit = "1";
         surgeHits += 1;
         surgeCombo += 1;
         AudioBus.claim();
-        el.remove();
+        el.textContent = "";
+        el.style.animation = "none";
+        el.style.background = "transparent";
+        el.style.boxShadow = "none";
+        const flash = document.createElement("div");
+        flash.className = "boom-flash";
+        el.appendChild(flash);
+        for (let i = 0; i < 8; i++) {
+          const shard = document.createElement("div");
+          shard.className = "boom-shard";
+          shard.style.setProperty("--r", (i * 45) + "deg");
+          el.appendChild(shard);
+        }
+        setTimeout(function(){ el.remove(); }, 300);
       };
       el.onclick = grab;
       el.ontouchstart = grab;
