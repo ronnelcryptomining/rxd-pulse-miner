@@ -39,6 +39,7 @@ function ensureUserFields(user) {
   if (user.blitz_count === undefined) user.blitz_count = 0;
   if (user.streak_blitz_used === undefined) user.streak_blitz_used = false;
   if (user.score === undefined) user.score = 0;
+  if (user.last_surge_at === undefined) user.last_surge_at = 0;
   return user;
 }
 
@@ -64,6 +65,20 @@ export function touchStreak(id) {
   if (user.streak === 4) user.wave1_reset_at = Date.now();
   save(db);
   return user;
+}
+
+export function markSurge(id) {
+  const user = getUser(id);
+  if (!user) return null;
+  user.last_surge_at = Date.now();
+  save(db);
+  return user;
+}
+
+export function surgeReady(id) {
+  const user = getUser(id);
+  if (!user || !user.address) return false;
+  return Date.now() - (user.last_surge_at || 0) >= 6 * 60 * 60 * 1000;
 }
 
 export function markBlitz(id, kind) {
@@ -125,6 +140,17 @@ export function upsertUser(id, address, extra = {}) {
   }
   save(db);
   return db.users[id];
+}
+
+export function restoreScore(id, savedScore) {
+  const user = getUser(id);
+  if (!user) return null;
+  const n = Number(savedScore || 0);
+  if (n > 0 && n < 100000000 && Number(user.score || 0) < n) {
+    user.score = n;
+    save(db);
+  }
+  return user;
 }
 
 export function findByTelegramId(tgId) {
