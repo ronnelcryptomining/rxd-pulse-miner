@@ -185,7 +185,7 @@
         </div>
         <div class="wallet-bottom">
           <div class="ath-static">ALL TIME HIGH $0.00918</div>
-          <button class="btn ghost wide" id="boardBtn">LEADERBOARD</button>
+          <button class="btn ghost wide" id="boardBtn">RXD on COINGECKO</button>
           <button class="btn wide disabled" id="payoutBtn" disabled title="Coming later">CLAIM RXD TOKENS</button>
         </div>
       </div>
@@ -447,18 +447,8 @@
     $("chip").onclick = function() { if (!state.address) showTab("wallet"); };
     $("timer").onclick = function() { if (!state.address) showTab("wallet"); };
     $("payoutBtn").onclick = function() { return false; };
-    $("boardBtn").onclick = async function() {
-      $("board").classList.add("on");
-      $("boardList").innerHTML = "Loading…";
-      try {
-        const data = await api("/leaderboard");
-        const rows = data.players || [];
-        if (!rows.length) $("boardList").innerHTML = "<div class='note'>No scores yet.</div>";
-        else $("boardList").innerHTML = rows.map(function(p, i) {
-          const tag = p.name || "Player";
-          return "<div class='rowline'><span class='rank'>" + (i + 1) + "</span><span>" + tag + "</span><span>" + Number(p.score || 0).toFixed(2) + "</span></div>";
-        }).join("");
-      } catch (e) { $("boardList").textContent = e.message; }
+    $("boardBtn").onclick = function() {
+      window.open("https://www.coingecko.com/en/coins/radiant?chart=type%3Dprice%26mode%3Dnull%26timeframe%3Dnull", "_blank", "noopener");
     };
     $("boardClose").onclick = function() { $("board").classList.remove("on"); };
     $("orb").onclick = async function() {
