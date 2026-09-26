@@ -90,6 +90,7 @@ function userIdFromReq(req) {
   return resolveUserId({
     telegramId: body.telegramId || query.telegramId || req.headers["x-telegram-id"],
     clientId: body.clientId || query.clientId || req.headers["x-client-id"],
+    address: body.address || query.address || req.headers["x-wallet-address"],
   });
 }
 
