@@ -119,7 +119,15 @@
     #board .rowline { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 8px 0; border-bottom: 1px solid #1a2e36; }
     #board .rank { color: var(--gold); width: 24px; }
     .bolt { position: absolute; width: 28px; height: 44px; color: #7af0f0; filter: drop-shadow(0 0 8px #3ec8c8); animation: fall linear forwards; }
+    .bolt.boom { animation: none; pointer-events: none; filter: none; }
     @keyframes fall { from { transform: translateY(-50px); } to { transform: translateY(110vh); } }
+    .boom-flash { position: absolute; width: 72px; height: 72px; margin: -22px 0 0 -22px; border-radius: 50%; background: radial-gradient(circle, #ffffff 0%, #7af0f0 28%, #3ec8c800 70%); animation: boom .28s ease-out forwards; pointer-events: none; }
+    .boom-shard { position: absolute; width: 4px; height: 16px; margin-left: 12px; background: #7af0f0; box-shadow: 0 0 8px #3ec8c8; animation: shard .32s ease-out forwards; pointer-events: none; }
+    @keyframes boom { from { transform: scale(.2); opacity: 1; } to { transform: scale(2.4); opacity: 0; } }
+    @keyframes shard { from { transform: rotate(var(--r)) translateY(0); opacity: 1; } to { transform: rotate(var(--r)) translateY(42px); opacity: 0; } }
+    .core { position: absolute; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #041416; font-weight: 900; font-size: 11px; background: radial-gradient(circle at 35% 30%, #d8ffff, #3ec8c8 45%, #0b6e74); box-shadow: 0 0 18px #3ec8c8, 0 0 4px #fff; animation: zip linear forwards; }
+    @keyframes zip { from { transform: scale(.4); } to { transform: scale(1.15); } }
+    .combo-pop { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); color: #d7c27a; font-weight: 800; letter-spacing: .2em; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -147,7 +155,7 @@
           </button>
         </div>
         <div class="claim-label" id="timer" style="cursor:pointer">CONNECT WALLET</div>
-        <div class="bolt-text">RADIANT BLOCKCHAIN</div>
+        <div class="bolt-text" id="chainTitle">RADIANT BLOCKCHAIN</div>
         <div class="toast" id="toast">+10 RXD queued</div>
       </div>
     </section>
@@ -505,12 +513,33 @@
       el.style.left = (8 + Math.random() * 84) + "vw";
       el.style.animationDuration = (1.1 + Math.random() * 1.2) + "s";
       el.innerHTML = '<svg viewBox="0 0 24 40" width="28" height="44"><path fill="#7af0f0" d="M13 0L3 22h8l-3 18 14-24h-8L21 0z"/></svg>';
+      function explodeBolt(target) {
+        const x = target.style.left;
+        const y = target.getBoundingClientRect().top + "px";
+        target.classList.add("boom");
+        target.innerHTML = "";
+        const flash = document.createElement("div");
+        flash.className = "boom-flash";
+        target.appendChild(flash);
+        for (let i = 0; i < 8; i++) {
+          const shard = document.createElement("div");
+          shard.className = "boom-shard";
+          shard.style.setProperty("--r", (i * 45) + "deg");
+          target.appendChild(shard);
+        }
+        target.style.top = y;
+        target.style.left = x;
+        target.style.animation = "none";
+        setTimeout(function(){ target.remove(); }, 300);
+      }
       function grab(e) {
         e.preventDefault();
         e.stopPropagation();
+        if (el.dataset.hit) return;
+        el.dataset.hit = "1";
         stormHits += 1;
         AudioBus.zap();
-        el.remove();
+        explodeBolt(el);
       }
       el.onclick = grab;
       el.ontouchstart = grab;
@@ -562,6 +591,74 @@
     $("tagline").onclick = function() {
       if (!state.address || !state.blitzReady) return;
       startCinematic("streak");
+    };
+    let secretTaps = [];
+    let surgeTimer = null;
+    let surgeHits = 0;
+    let surgeCombo = 0;
+    function spawnCore() {
+      const storm = $("storm");
+      const el = document.createElement("div");
+      el.className = "core";
+      el.textContent = "RXD";
+      const side = Math.floor(Math.random() * 4);
+      const x = side === 0 || side === 2 ? Math.random() * 80 + 10 : (side === 1 ? 92 : 4);
+      const y = side === 1 || side === 3 ? Math.random() * 70 + 15 : (side === 0 ? 4 : 88);
+      el.style.left = x + "vw";
+      el.style.top = y + "vh";
+      const life = 700 + Math.random() * 500;
+      const grab = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        surgeHits += 1;
+        surgeCombo += 1;
+        AudioBus.claim();
+        el.remove();
+      };
+      el.onclick = grab;
+      el.ontouchstart = grab;
+      storm.appendChild(el);
+      setTimeout(function() { if (el.parentNode) { el.remove(); surgeCombo = 0; } }, life);
+    }
+    async function endSurge() {
+      clearInterval(surgeTimer);
+      surgeTimer = null;
+      const hits = surgeHits;
+      let earned = Number((hits * 0.02).toFixed(2));
+      try {
+        const res = await api("/surge", { method: "POST", body: JSON.stringify(Object.assign({ hits: hits }, identity())) });
+        applyServer(res.state);
+        if (res.amountRxd != null) earned = Number(res.amountRxd);
+      } catch (e) {}
+      $("storm").innerHTML = "<div class='storm-result'><div class='big'>" + hits + "</div><div class='sub'>CORES CAUGHT</div><div class='sub'>+" + earned + " RXD</div></div>";
+      surgeHits = 0;
+      renderAll();
+      setTimeout(function() {
+        $("storm").classList.remove("on");
+        $("storm").innerHTML = "";
+        showTab("mine");
+      }, 2200);
+    }
+    function startSurge() {
+      if (stormTimer || surgeTimer) return;
+      if (!state.address) { showTab("wallet"); return; }
+      surgeHits = 0;
+      surgeCombo = 0;
+      $("storm").innerHTML = "";
+      $("storm").classList.add("on");
+      AudioBus.thunder();
+      surgeTimer = setInterval(spawnCore, 280);
+      setTimeout(endSurge, 12000);
+    }
+    $("chainTitle").onclick = function() {
+      if (!state.address) return;
+      const now = Date.now();
+      secretTaps = secretTaps.filter(function(t) { return now - t < 4000; });
+      secretTaps.push(now);
+      if (secretTaps.length >= 5) {
+        secretTaps = [];
+        startSurge();
+      }
     };
     (async function() {
       try {
