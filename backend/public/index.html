@@ -331,6 +331,8 @@
       opts = opts || {};
       const headers = { "Content-Type": "application/json", "x-client-id": clientId };
       if (telegramId) headers["x-telegram-id"] = String(telegramId);
+      const addr = (state && state.address) || localStorage.getItem("rxd-addr") || "";
+      if (addr) headers["x-wallet-address"] = addr;
       const res = await fetch(API + path, Object.assign({}, opts, { headers }));
       const data = await res.json().catch(function(){ return {}; });
       if (!res.ok) throw new Error(data.error || res.statusText);
@@ -352,13 +354,15 @@
       state.wave2Reset = s.wave2Reset || 0;
       state.blitzReady = !!s.blitzReady;
       state.quests = {};
+      state.pending = {};
       (s.quests || []).forEach(function(q) {
         const name = q.quest || q;
-        state.quests[name] = { completed: q.completed_at || 0, started: q.started_at || 0 };
-      });
-      Object.keys(state.pending || {}).forEach(function(name) {
-        const q = state.quests[name];
-        if (!q || !q.started || (q.completed && q.completed >= q.started)) delete state.pending[name];
+        const started = q.started_at || 0;
+        const completed = q.completed_at || 0;
+        state.quests[name] = { completed: completed, started: started };
+        if (started && started > completed && Date.now() < started + VERIFY_MS) {
+          state.pending[name] = started + VERIFY_MS;
+        }
       });
       save();
     }
@@ -741,7 +745,7 @@
           if (cfg.quests && cfg.quests[q]) btn.dataset.url = cfg.quests[q];
         });
         try {
-          applyServer(await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "", savedScore: String(state.claimed || 0) })));
+          applyServer(await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "", savedScore: String(state.claimed || 0), address: state.address || localStorage.getItem("rxd-addr") || "" })));
         } catch (miss) {
           if (state.address && isPhotonicAddress(state.address)) {
             applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({ address: state.address }, identity())) }));
@@ -750,6 +754,14 @@
       } catch (e) {}
       renderAll();
     })();
+    async function pullState() {
+      try {
+        applyServer(await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "", savedScore: String(state.claimed || 0), address: state.address || localStorage.getItem("rxd-addr") || "" })));
+        renderAll();
+      } catch (e) {}
+    }
+    setInterval(pullState, 8000);
+    document.addEventListener("visibilitychange", function() { if (!document.hidden) pullState(); });
     setInterval(renderAll, 250);
   </script>
 </body>
