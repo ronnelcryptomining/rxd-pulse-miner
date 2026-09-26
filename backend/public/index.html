@@ -283,7 +283,17 @@
     if (incomingRef && !state.refUsed) state.pendingRef = incomingRef;
     function load() { try { return JSON.parse(localStorage.getItem(KEY)) || defaults(); } catch(e) { return defaults(); } }
     function defaults() { return { address: "", claimed: 0, lastClaim: 0, quests: {}, pending: {}, referralCode: "", referrals: 0, pendingRef: "", streak: 0, blitzReady: false }; }
-    function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+    function save() {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      if (state.address) localStorage.setItem("rxd-addr", state.address);
+      if (Number(state.claimed) > 0) localStorage.setItem("rxd-claimed", String(state.claimed));
+    }
+    (function recover() {
+      const savedAddr = localStorage.getItem("rxd-addr") || "";
+      const savedClaim = Number(localStorage.getItem("rxd-claimed") || 0);
+      if (!state.address && savedAddr) state.address = savedAddr;
+      if (savedClaim > Number(state.claimed || 0)) state.claimed = savedClaim;
+    })();
     let botUsername = "";
     let miniAppName = "app";
     function referralLink() {
@@ -293,7 +303,7 @@
     }
     const telegramName = (tgUser && (tgUser.first_name || tgUser.username)) || "";
     function identity() {
-      return { clientId, telegramId, telegramUsername, telegramName, ref: state.pendingRef || "", startParam: startParam || state.pendingRef || "" };
+      return { clientId, telegramId, telegramUsername, telegramName, ref: state.pendingRef || "", startParam: startParam || state.pendingRef || "", savedScore: Number(state.claimed || localStorage.getItem("rxd-claimed") || 0) };
     }
     async function api(path, opts) {
       opts = opts || {};
@@ -306,8 +316,10 @@
     }
     function applyServer(s) {
       if (!s) return;
-      state.address = s.address || "";
-      state.claimed = Number(s.claimed || 0);
+      if (s.address) state.address = s.address;
+      const incoming = Number(s.claimed || 0);
+      const kept = Number(state.claimed || localStorage.getItem("rxd-claimed") || 0);
+      state.claimed = Math.max(incoming, kept);
       state.lastClaim = s.lastClaimAt || 0;
       state.referralCode = s.referralCode || state.referralCode || "";
       state.referrals = Number(s.referrals || 0);
@@ -672,7 +684,7 @@
           if (cfg.quests && cfg.quests[q]) btn.dataset.url = cfg.quests[q];
         });
         try {
-          applyServer(await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "" })));
+          applyServer(await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "", savedScore: String(state.claimed || 0) })));
         } catch (miss) {
           if (state.address && isPhotonicAddress(state.address)) {
             applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({ address: state.address }, identity())) }));
