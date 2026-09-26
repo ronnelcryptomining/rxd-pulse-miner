@@ -25,6 +25,9 @@ import {
   wave1Complete,
   wave2Complete,
   resolveUserId,
+  markSurge,
+  surgeReady,
+  restoreScore,
 } from "./db.js";
 import { dryRun, treasuryAddress, treasuryBalance } from "./payout.js";
 
@@ -161,6 +164,7 @@ app.post("/api/connect", (req, res) => {
       telegramUsername: username,
       telegramName: String(req.body.telegramName || "").slice(0, 64),
     });
+    restoreScore(id, req.body.savedScore);
     touchStreak(id);
     res.json(userState(id));
   } catch (err) {
@@ -181,6 +185,7 @@ app.post("/api/disconnect", (req, res) => {
 app.get("/api/me", (req, res) => {
   try {
     const id = userIdFromReq(req);
+    restoreScore(id, req.query.savedScore || req.body?.savedScore);
     touchStreak(id);
     const state = userState(id);
     if (!state || !state.address) return res.status(404).json({ error: "Not connected" });
@@ -238,6 +243,29 @@ app.post("/api/blitz", (req, res) => {
         userId: id,
         address: user.address,
         kind: "blitz",
+        amountRxd,
+      });
+    }
+    res.json({ ok: true, amountRxd, state: userState(id) });
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
+});
+
+app.post("/api/surge", (req, res) => {
+  try {
+    const id = userIdFromReq(req);
+    const user = getUser(id);
+    if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
+    if (!surgeReady(id)) return res.status(429).json({ error: "Surge cooling down" });
+    const hits = Math.max(0, Math.min(120, Number(req.body.hits || 0)));
+    const amountRxd = Number((hits * 0.02).toFixed(2));
+    markSurge(id);
+    if (amountRxd > 0) {
+      enqueuePayout({
+        userId: id,
+        address: user.address,
+        kind: "surge",
         amountRxd,
       });
     }
