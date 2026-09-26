@@ -38,6 +38,7 @@ function ensureUserFields(user) {
   if (user.wave2_reset_at === undefined) user.wave2_reset_at = 0;
   if (user.blitz_count === undefined) user.blitz_count = 0;
   if (user.streak_blitz_used === undefined) user.streak_blitz_used = false;
+  if (user.score === undefined) user.score = 0;
   return user;
 }
 
@@ -126,6 +127,53 @@ export function upsertUser(id, address, extra = {}) {
   return db.users[id];
 }
 
+export function findByTelegramId(tgId) {
+  if (!tgId) return null;
+  const key = "tg:" + String(tgId);
+  if (db.users[key]) return ensureUserFields(db.users[key]);
+  return Object.values(db.users).find((u) => String(u.telegram_id || "") === String(tgId)) || null;
+}
+
+export function resolveUserId({ telegramId, clientId }) {
+  const tg = telegramId && /^\d{3,20}$/.test(String(telegramId)) ? String(telegramId) : "";
+  const web = clientId && /^[a-zA-Z0-9_-]{8,80}$/.test(String(clientId)) ? String(clientId) : "";
+  if (tg) {
+    const hit = findByTelegramId(tg);
+    if (hit) return hit.id;
+    const webUser = web ? db.users["web:" + web] : null;
+    if (webUser) {
+      remapUserId(webUser.id, "tg:" + tg);
+      webUser.telegram_id = tg;
+      save(db);
+      return "tg:" + tg;
+    }
+    return "tg:" + tg;
+  }
+  if (web) return "web:" + web;
+  throw Object.assign(new Error("Missing user id"), { status: 400 });
+}
+
+function remapUserId(oldId, newId) {
+  if (!oldId || oldId === newId || !db.users[oldId]) return;
+  const user = db.users[oldId];
+  user.id = newId;
+  db.users[newId] = user;
+  delete db.users[oldId];
+  Object.values(db.quests).forEach((q) => {
+    if (q.user_id === oldId) q.user_id = newId;
+  });
+  Object.keys(db.quests).forEach((key) => {
+    if (key.startsWith(oldId + ":")) {
+      const q = db.quests[key];
+      db.quests[newId + ":" + key.slice(oldId.length + 1)] = q;
+      delete db.quests[key];
+    }
+  });
+  (db.payouts || []).forEach((p) => {
+    if (p.user_id === oldId) p.user_id = newId;
+  });
+}
+
 export function getUser(id) {
   const user = db.users[id];
   if (!user) return null;
@@ -198,6 +246,8 @@ export function enqueuePayout({ userId, address, kind, amountRxd }) {
     sent_at: null,
   };
   db.payouts.push(row);
+  const owner = db.users[userId];
+  if (owner) owner.score = Number(owner.score || 0) + Number(amountRxd || 0);
   logActivity({
     userId,
     type: kind,
@@ -220,9 +270,12 @@ export function markPayout(id, fields) {
 }
 
 export function claimedTotal(id) {
-  return db.payouts
+  const user = db.users[id];
+  const fromUser = Number((user && user.score) || 0);
+  const fromPay = db.payouts
     .filter((p) => p.user_id === id && ["queued", "retry", "sent", "dry_run"].includes(p.status))
     .reduce((sum, p) => sum + Number(p.amount_rxd || 0), 0);
+  return Math.max(fromUser, fromPay);
 }
 
 export function referralCount(code) {
@@ -265,14 +318,19 @@ export function blitzUnlocked(id) {
 
 export function leaderboard(limit = 20) {
   return Object.values(db.users)
-    .filter((u) => u.address)
-    .map((u) => ({
-      name: u.telegram_username
-        ? "@" + u.telegram_username
-        : (u.telegram_name || "Player"),
-      score: claimedTotal(u.id),
-      streak: u.streak || 0,
-    }))
+    .filter((u) => u.address || Number(u.score || 0) > 0)
+    .map((u) => {
+      const uname = String(u.telegram_username || "").replace(/^@/, "");
+      const name = uname
+        ? "@" + uname
+        : (u.telegram_name || (u.telegram_id ? "ID " + u.telegram_id : "Player"));
+      return {
+        name,
+        telegramId: u.telegram_id || "",
+        score: claimedTotal(u.id),
+        streak: u.streak || 0,
+      };
+    })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
