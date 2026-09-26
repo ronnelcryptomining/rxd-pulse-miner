@@ -160,12 +160,33 @@ export function findByTelegramId(tgId) {
   return Object.values(db.users).find((u) => String(u.telegram_id || "") === String(tgId)) || null;
 }
 
-export function resolveUserId({ telegramId, clientId }) {
+export function findByAddress(address) {
+  if (!address) return null;
+  const a = String(address).trim();
+  if (!a) return null;
+  return Object.values(db.users).find((u) => u.address && u.address === a) || null;
+}
+
+export function resolveUserId({ telegramId, clientId, address }) {
   const tg = telegramId && /^\d{3,20}$/.test(String(telegramId)) ? String(telegramId) : "";
   const web = clientId && /^[a-zA-Z0-9_-]{8,80}$/.test(String(clientId)) ? String(clientId) : "";
+  const byAddr = findByAddress(address);
   if (tg) {
     const hit = findByTelegramId(tg);
-    if (hit) return hit.id;
+    if (hit) {
+      if (byAddr && byAddr.id !== hit.id && (!byAddr.telegram_id || String(byAddr.telegram_id) === tg)) {
+        remapUserId(byAddr.id, hit.id);
+        save(db);
+      }
+      return hit.id;
+    }
+    if (byAddr) {
+      byAddr.telegram_id = tg;
+      const dest = "tg:" + tg;
+      if (byAddr.id !== dest) remapUserId(byAddr.id, dest);
+      save(db);
+      return dest;
+    }
     const webUser = web ? db.users["web:" + web] : null;
     if (webUser) {
       remapUserId(webUser.id, "tg:" + tg);
@@ -175,6 +196,7 @@ export function resolveUserId({ telegramId, clientId }) {
     }
     return "tg:" + tg;
   }
+  if (byAddr) return byAddr.id;
   if (web) return "web:" + web;
   throw Object.assign(new Error("Missing user id"), { status: 400 });
 }
