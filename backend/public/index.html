@@ -250,12 +250,23 @@
       if (e.target.closest("button, .btn, a.btn, .orb, .tagline.live, .wallet-chip")) AudioBus.click();
     }, true);
     const tg = window.Telegram && window.Telegram.WebApp;
-    if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor("#071014"); tg.setBackgroundColor("#071014"); }
+    if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor("#071014"); tg.setBackgroundColor("#071014"); } catch (e) {} }
     const $ = (id) => document.getElementById(id);
     const clientId = localStorage.getItem("rxd-client") || crypto.randomUUID();
     localStorage.setItem("rxd-client", clientId);
-    const tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
-    const telegramId = (tgUser && tgUser.id) || null;
+    function readTgUser() {
+      const raw = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+      if (raw && raw.id) return raw;
+      try {
+        const q = new URLSearchParams((tg && tg.initData) || "");
+        const u = JSON.parse(q.get("user") || "null");
+        if (u && u.id) return u;
+      } catch (e) {}
+      return null;
+    }
+    const tgUser = readTgUser();
+    const telegramId = (tgUser && tgUser.id) || localStorage.getItem("rxd-tg-id") || null;
+    if (telegramId) localStorage.setItem("rxd-tg-id", String(telegramId));
     const telegramUsername = (tgUser && tgUser.username) || "";
     const startParam = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || "";
     const params = new URLSearchParams(location.search);
@@ -573,7 +584,13 @@
           const q = btn.closest("[data-quest]").dataset.quest;
           if (cfg.quests && cfg.quests[q]) btn.dataset.url = cfg.quests[q];
         });
-        applyServer(await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "" })));
+        try {
+          applyServer(await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "" })));
+        } catch (miss) {
+          if (state.address && isPhotonicAddress(state.address)) {
+            applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({ address: state.address }, identity())) }));
+          }
+        }
       } catch (e) {}
       renderAll();
     })();
