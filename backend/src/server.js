@@ -28,6 +28,7 @@ import {
   markSurge,
   surgeReady,
   restoreScore,
+  findByAddress,
 } from "./db.js";
 import { dryRun, treasuryAddress, treasuryBalance } from "./payout.js";
 
@@ -63,9 +64,9 @@ const QUESTS = {
   x: process.env.X_URL || "https://x.com/rxdpulseminer?s=11",
   youtube: process.env.YOUTUBE_URL || "https://youtube.com/@rxdpulseminer?si=bNyjQ3OXjbaZlGuU",
   facebook: process.env.FACEBOOK_URL || "https://www.facebook.com/share/1DsG5GnaJF/?mibextid=wwXIfr",
-  visit_yt: process.env.VISIT_YT_URL || "https://youtube.com/@rxdpulseminer?si=lItwmnS40EBCYgX2",
+  visit_yt: process.env.VISIT_YT_URL || "https://youtube.com/@rxdpulseminer?si=29-Nr7F-3xoP5hM9",
   visit_x: process.env.VISIT_X_URL || "https://x.com/rxdpulseminer?s=11",
-  visit_fb: process.env.VISIT_FB_URL || "https://www.facebook.com/share/19gu5tuZth/?mibextid=wwXIfr",
+  visit_fb: process.env.VISIT_FB_URL || "https://www.facebook.com/share/1Dy6e2iiPE/?mibextid=wwXIfr",
   visit_web: process.env.VISIT_WEB_URL || "https://radiantblockchain.org/",
 };
 const BOT_USERNAME = (process.env.BOT_USERNAME || "").replace(/^@/, "");
@@ -73,14 +74,18 @@ const MINI_APP_NAME = process.env.MINI_APP_NAME || "app";
 const PAYOUT_CLAIM_ENABLED = process.env.PAYOUT_CLAIM_ENABLED === "true";
 const BLITZ_TEST = process.env.BLITZ_TEST === "true";
 
+function normalizeAddr(v) {
+  return String(v || "").replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\s+/g, "").trim();
+}
+
 function looksLikeAddress(v) {
-  if (typeof v !== "string") return false;
-  const s = v.trim();
-  if (!s || /\s/.test(s)) return false;
+  const s = normalizeAddr(v);
+  if (!s || s.length < 20 || s.length > 80) return false;
   if (/^0x[0-9a-fA-F]{40}$/.test(s)) return false;
-  if (/radaddr:[a-z0-9]+$/i.test(s)) return true;
+  if (/seed|mnemonic|password/i.test(s)) return false;
+  if (/^(radaddr:|bitcoincash:|radiant:)/i.test(s)) return true;
   if (/^rxd1[a-z0-9]{20,}$/i.test(s)) return true;
-  if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(s)) return true;
+  if (/^[13][a-zA-Z0-9]{24,48}$/.test(s)) return true;
   return false;
 }
 
@@ -151,9 +156,13 @@ app.post("/api/connect", (req, res) => {
     const telegramId = req.body.telegramId || req.headers["x-telegram-id"];
     const username = String(req.body.telegramUsername || "").replace(/^@/, "").trim();
     const id = userIdFromReq(req);
-    if (!rateLimit(id)) return res.status(429).json({ error: "Wait a few seconds and try again" });
-    const address = String(req.body.address || "").trim();
-    if (!looksLikeAddress(address)) {
+    const address = normalizeAddr(req.body.address || "");
+    const existing = getUser(id);
+    const byAddr = findByAddress(address);
+    const ownWallet = !!(existing && (existing.address === address || existing.last_address === address))
+      || !!(byAddr && existing && byAddr.id === existing.id);
+    if (!ownWallet && !rateLimit(id)) return res.status(429).json({ error: "Wait a few seconds and try again" });
+    if (!ownWallet && !looksLikeAddress(address)) {
       return res.status(400).json({ error: "Only a Photonic RXD receive address is accepted" });
     }
     const rawRef = String(req.body.ref || req.body.startParam || "").trim().toUpperCase();
@@ -177,7 +186,8 @@ app.post("/api/disconnect", (req, res) => {
   try {
     const id = userIdFromReq(req);
     disconnectUser(id);
-    res.json({ ok: true, address: "" });
+    const state = userState(id);
+    res.json({ ok: true, address: "", disconnected: true, ...(state || {}) });
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
   }
@@ -189,9 +199,10 @@ app.get("/api/me", (req, res) => {
     restoreScore(id, req.query.savedScore || req.body?.savedScore);
     touchStreak(id);
     const state = userState(id);
-    if (!state || !state.address) return res.status(404).json({ error: "Not connected" });
+    if (!state) return res.status(404).json({ error: "Not connected", disconnected: true });
     res.json({
       ...state,
+      disconnected: !state.address,
       nextClaimAt: state.lastClaimAt ? state.lastClaimAt + CLAIM_MS : 0,
     });
   } catch (err) {
