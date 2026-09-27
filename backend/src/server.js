@@ -73,14 +73,17 @@ const MINI_APP_NAME = process.env.MINI_APP_NAME || "app";
 const PAYOUT_CLAIM_ENABLED = process.env.PAYOUT_CLAIM_ENABLED === "true";
 const BLITZ_TEST = process.env.BLITZ_TEST === "true";
 
+function normalizeAddr(v) {
+  return String(v || "").replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\s+/g, "").trim();
+}
+
 function looksLikeAddress(v) {
-  if (typeof v !== "string") return false;
-  const s = v.trim();
-  if (!s || /\s/.test(s)) return false;
+  const s = normalizeAddr(v);
+  if (!s) return false;
   if (/^0x[0-9a-fA-F]{40}$/.test(s)) return false;
-  if (/radaddr:[a-z0-9]+$/i.test(s)) return true;
+  if (/^(radaddr:|bitcoincash:|radiant:)/i.test(s)) return true;
   if (/^rxd1[a-z0-9]{20,}$/i.test(s)) return true;
-  if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(s)) return true;
+  if (/^[13][a-km-zA-HJ-NP-Z1-9]{24,40}$/.test(s)) return true;
   return false;
 }
 
@@ -151,8 +154,10 @@ app.post("/api/connect", (req, res) => {
     const telegramId = req.body.telegramId || req.headers["x-telegram-id"];
     const username = String(req.body.telegramUsername || "").replace(/^@/, "").trim();
     const id = userIdFromReq(req);
-    if (!rateLimit(id)) return res.status(429).json({ error: "Wait a few seconds and try again" });
-    const address = String(req.body.address || "").trim();
+    const address = normalizeAddr(req.body.address || "");
+    const existing = getUser(id);
+    const ownWallet = existing && (existing.address === address || existing.last_address === address);
+    if (!ownWallet && !rateLimit(id)) return res.status(429).json({ error: "Wait a few seconds and try again" });
     if (!looksLikeAddress(address)) {
       return res.status(400).json({ error: "Only a Photonic RXD receive address is accepted" });
     }
