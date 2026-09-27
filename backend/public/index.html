@@ -166,9 +166,9 @@
         <div class="task-card wave1" data-quest="x" data-reward="100"><div class="ico">X</div><div class="meta"><div class="t">Follow RXD Pulse on X</div><div class="r">+100 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer?s=11">Go</button></div>
         <div class="task-card wave1" data-quest="youtube" data-reward="100"><div class="ico">Y</div><div class="meta"><div class="t">Subscribe on YouTube</div><div class="r">+100 RXD</div></div><button class="btn q-btn" data-url="https://youtube.com/@rxdpulseminer?si=bNyjQ3OXjbaZlGuU">Go</button></div>
         <div class="task-card wave1" data-quest="facebook" data-reward="100"><div class="ico">F</div><div class="meta"><div class="t">Follow RXD Pulse on Facebook</div><div class="r">+100 RXD</div></div><button class="btn q-btn" data-url="https://www.facebook.com/share/1DsG5GnaJF/?mibextid=wwXIfr">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_yt" data-reward="25"><div class="ico">Y</div><div class="meta"><div class="t">Watch RXD Pulse videos on YT</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://youtube.com/@rxdpulseminer?si=lItwmnS40EBCYgX2">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_x" data-reward="25"><div class="ico">X</div><div class="meta"><div class="t">Visit RXD Pulse on X</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer?s=11">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_fb" data-reward="25"><div class="ico">F</div><div class="meta"><div class="t">Visit RXD Pulse on FB</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://www.facebook.com/share/19gu5tuZth/?mibextid=wwXIfr">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_yt" data-reward="25"><div class="ico">Y</div><div class="meta"><div class="t">RXD Videos on YT</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://www.youtube.com/@rxdpulseminer/videos">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_x" data-reward="25"><div class="ico">X</div><div class="meta"><div class="t">Like & Share on X</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_fb" data-reward="25"><div class="ico">F</div><div class="meta"><div class="t">Like & Share on FB</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://www.facebook.com/share/1Dy6e2iiPE/?mibextid=wwXIfr">Go</button></div>
         <div class="task-card wave2 hidden" data-quest="visit_web" data-reward="25"><div class="ico">R</div><div class="meta"><div class="t">Visit Radiant Website</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://radiantblockchain.org/">Go</button></div>
       </div>
     </section>
@@ -349,7 +349,14 @@
     }
     function applyServer(s) {
       if (!s) return;
-      if (s.address) state.address = s.address;
+      if (s.disconnected || s.address === "") {
+        state.address = "";
+        localStorage.removeItem("rxd-addr");
+        localStorage.setItem("rxd-disconnected", "1");
+      } else if (s.address) {
+        state.address = s.address;
+        localStorage.removeItem("rxd-disconnected");
+      }
       const incoming = Number(s.claimed || 0);
       const kept = Number(state.claimed || localStorage.getItem("rxd-claimed") || 0);
       state.claimed = Math.max(incoming, kept);
@@ -478,6 +485,7 @@
       }
       try {
         applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({ address: v }, identity())) }));
+        localStorage.removeItem("rxd-disconnected");
         renderAll();
         showTab("mine");
       } catch (err) {
@@ -489,8 +497,10 @@
       openOut("https://photonic-wallet.com");
     };
     $("disconnectBtn").onclick = async function() {
-      try { await api("/disconnect", { method: "POST", body: JSON.stringify(identity()) }); } catch (e) {}
+      try { applyServer(await api("/disconnect", { method: "POST", body: JSON.stringify(identity()) })); } catch (e) {}
       state.address = "";
+      localStorage.removeItem("rxd-addr");
+      localStorage.setItem("rxd-disconnected", "1");
       save();
       $("addrInput").value = "";
       renderAll();
@@ -770,9 +780,12 @@
           if (cfg.quests && cfg.quests[q]) btn.dataset.url = cfg.quests[q];
         });
         try {
-          applyServer(await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "", savedScore: String(state.claimed || 0), address: state.address || localStorage.getItem("rxd-addr") || "" })));
+          const me = await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "", savedScore: String(state.claimed || 0), address: state.address || localStorage.getItem("rxd-addr") || "" }));
+          applyServer(me);
         } catch (miss) {
-          if (state.address && isPhotonicAddress(state.address)) {
+          if (localStorage.getItem("rxd-disconnected") === "1") {
+            state.address = "";
+          } else if (state.address && isPhotonicAddress(state.address)) {
             applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({ address: state.address }, identity())) }));
           }
         }
@@ -781,9 +794,15 @@
     })();
     async function pullState() {
       try {
-        applyServer(await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "", savedScore: String(state.claimed || 0), address: state.address || localStorage.getItem("rxd-addr") || "" })));
+        const me = await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "", savedScore: String(state.claimed || 0), address: state.address || localStorage.getItem("rxd-addr") || "" }));
+        applyServer(me);
         renderAll();
-      } catch (e) {}
+      } catch (e) {
+        if (localStorage.getItem("rxd-disconnected") === "1") {
+          state.address = "";
+          renderAll();
+        }
+      }
     }
     setInterval(pullState, 8000);
     document.addEventListener("visibilitychange", function() { if (!document.hidden) pullState(); });
