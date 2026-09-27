@@ -159,12 +159,12 @@ app.post("/api/connect", (req, res) => {
     const address = normalizeAddr(req.body.address || "");
     const existing = getUser(id);
     const byAddr = findByAddress(address);
-    const ownWallet = !!(existing && (existing.address === address || existing.last_address === address))
-      || !!(byAddr && existing && byAddr.id === existing.id);
-    if (!ownWallet && !rateLimit(id)) return res.status(429).json({ error: "Wait a few seconds and try again" });
-    if (!ownWallet && !looksLikeAddress(address)) {
+    const ownWallet = !!(address && existing && (existing.address === address || existing.last_address === address))
+      || !!(address && byAddr && existing && byAddr.id === existing.id);
+    if (!address || (!ownWallet && !looksLikeAddress(address))) {
       return res.status(400).json({ error: "Only a Photonic RXD receive address is accepted" });
     }
+    if (!ownWallet && !rateLimit(id)) return res.status(429).json({ error: "Wait a few seconds and try again" });
     const rawRef = String(req.body.ref || req.body.startParam || "").trim().toUpperCase();
     const referredBy = rawRef && findByRef(rawRef) ? rawRef : "";
     upsertUser(id, address, {
