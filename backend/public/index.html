@@ -383,12 +383,12 @@
       save();
     }
     function isPhotonicAddress(v) {
-      if (!v || /\s/.test(v)) return false;
-      const s = v.trim();
+      const s = String(v || "").replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\s+/g, "").trim();
+      if (!s) return false;
       if (/^0x[0-9a-fA-F]{40}$/.test(s)) return false;
-      if (/radaddr:[a-z0-9]+$/i.test(s)) return true;
+      if (/^(radaddr:|bitcoincash:|radiant:)/i.test(s)) return true;
       if (/^rxd1[a-z0-9]{20,}$/i.test(s)) return true;
-      if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(s)) return true;
+      if (/^[13][a-km-zA-HJ-NP-Z1-9]{24,40}$/.test(s)) return true;
       return false;
     }
     function showTab(name) {
@@ -477,7 +477,8 @@
     $("connectBtn").onclick = async function() {
       const errEl = $("addrError");
       errEl.style.display = "none";
-      const v = $("addrInput").value.trim();
+      const v = $("addrInput").value.replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\s+/g, "").trim();
+      $("addrInput").value = v;
       if (!isPhotonicAddress(v)) {
         errEl.style.display = "block";
         errEl.textContent = "That is not a Photonic RXD address. Open photonic-wallet.com, tap Receive, and paste that address only.";
