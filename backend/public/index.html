@@ -296,10 +296,19 @@
     })();
     let botUsername = "";
     let miniAppName = "app";
+    function cleanBot(name) {
+      let n = String(name || "").trim();
+      n = n.replace(/^https?:\/\/(t\.me|telegram\.me)\//i, "").replace(/^@/, "");
+      n = n.split(/[/?#\s]/)[0];
+      if (!/^[A-Za-z0-9_]{5,32}$/.test(n)) return "";
+      return n;
+    }
     function referralLink() {
       if (!state.referralCode) return "";
-      if (botUsername) return "https://t.me/" + botUsername + "/" + miniAppName + "?startapp=" + state.referralCode;
-      return location.origin + "/?ref=" + state.referralCode;
+      const bot = cleanBot(botUsername);
+      const app = String(miniAppName || "app").replace(/[^A-Za-z0-9_]/g, "") || "app";
+      if (bot) return "https://t.me/" + bot + "/" + app + "?startapp=" + state.referralCode;
+      return (location.origin || "https://rxd-pulse-miner.onrender.com") + "/?ref=" + state.referralCode;
     }
     const telegramName = (tgUser && (tgUser.first_name || tgUser.username)) || "";
     function identity() {
