@@ -349,13 +349,13 @@
     }
     function applyServer(s) {
       if (!s) return;
-      if (s.disconnected || s.address === "") {
+      if (s.address) {
+        state.address = s.address;
+        localStorage.removeItem("rxd-disconnected");
+      } else if (s.disconnected) {
         state.address = "";
         localStorage.removeItem("rxd-addr");
         localStorage.setItem("rxd-disconnected", "1");
-      } else if (s.address) {
-        state.address = s.address;
-        localStorage.removeItem("rxd-disconnected");
       }
       const incoming = Number(s.claimed || 0);
       const kept = Number(state.claimed || localStorage.getItem("rxd-claimed") || 0);
@@ -485,7 +485,7 @@
         return;
       }
       try {
-        applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({ address: v }, identity())) }));
+        applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({}, identity(), { address: v })) }));
         localStorage.removeItem("rxd-disconnected");
         renderAll();
         showTab("mine");
@@ -535,7 +535,7 @@
       if (!isPhotonicAddress(addr)) return false;
       state.address = addr;
       try {
-        applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({ address: addr }, identity())) }));
+        applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({}, identity(), { address: addr })) }));
       } catch (e) {}
       return !!state.address;
     }
@@ -787,7 +787,7 @@
           if (localStorage.getItem("rxd-disconnected") === "1") {
             state.address = "";
           } else if (state.address && isPhotonicAddress(state.address)) {
-            applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({ address: state.address }, identity())) }));
+            applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({}, identity(), { address: state.address })) }));
           }
         }
       } catch (e) {}
