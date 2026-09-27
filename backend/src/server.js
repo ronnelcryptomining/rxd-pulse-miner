@@ -28,6 +28,7 @@ import {
   markSurge,
   surgeReady,
   restoreScore,
+  findByAddress,
 } from "./db.js";
 import { dryRun, treasuryAddress, treasuryBalance } from "./payout.js";
 
@@ -79,11 +80,12 @@ function normalizeAddr(v) {
 
 function looksLikeAddress(v) {
   const s = normalizeAddr(v);
-  if (!s) return false;
+  if (!s || s.length < 20 || s.length > 80) return false;
   if (/^0x[0-9a-fA-F]{40}$/.test(s)) return false;
+  if (/seed|mnemonic|password/i.test(s)) return false;
   if (/^(radaddr:|bitcoincash:|radiant:)/i.test(s)) return true;
   if (/^rxd1[a-z0-9]{20,}$/i.test(s)) return true;
-  if (/^[13][a-km-zA-HJ-NP-Z1-9]{24,40}$/.test(s)) return true;
+  if (/^[13][a-zA-Z0-9]{24,48}$/.test(s)) return true;
   return false;
 }
 
@@ -156,9 +158,11 @@ app.post("/api/connect", (req, res) => {
     const id = userIdFromReq(req);
     const address = normalizeAddr(req.body.address || "");
     const existing = getUser(id);
-    const ownWallet = existing && (existing.address === address || existing.last_address === address);
+    const byAddr = findByAddress(address);
+    const ownWallet = !!(existing && (existing.address === address || existing.last_address === address))
+      || !!(byAddr && existing && byAddr.id === existing.id);
     if (!ownWallet && !rateLimit(id)) return res.status(429).json({ error: "Wait a few seconds and try again" });
-    if (!looksLikeAddress(address)) {
+    if (!ownWallet && !looksLikeAddress(address)) {
       return res.status(400).json({ error: "Only a Photonic RXD receive address is accepted" });
     }
     const rawRef = String(req.body.ref || req.body.startParam || "").trim().toUpperCase();
