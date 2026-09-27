@@ -40,6 +40,7 @@ function ensureUserFields(user) {
   if (user.streak_blitz_used === undefined) user.streak_blitz_used = false;
   if (user.score === undefined) user.score = 0;
   if (user.last_surge_at === undefined) user.last_surge_at = 0;
+  if (user.last_address === undefined) user.last_address = user.address || "";
   return user;
 }
 
@@ -123,6 +124,7 @@ export function upsertUser(id, address, extra = {}) {
     if (extra.referredBy && !existing.referred_by && extra.referredBy !== existing.referral_code) {
       existing.referred_by = extra.referredBy;
     }
+    existing.disconnected_at = 0;
   } else {
     db.users[id] = ensureUserFields({
       id,
@@ -164,7 +166,7 @@ export function findByAddress(address) {
   if (!address) return null;
   const a = String(address).trim();
   if (!a) return null;
-  return Object.values(db.users).find((u) => u.address && u.address === a) || null;
+  return Object.values(db.users).find((u) => (u.address && u.address === a) || (u.last_address && u.last_address === a)) || null;
 }
 
 export function resolveUserId({ telegramId, clientId, address }) {
@@ -231,7 +233,9 @@ export function getUser(id) {
 export function disconnectUser(id) {
   const user = db.users[id];
   if (!user) return null;
+  if (user.address) user.last_address = user.address;
   user.address = "";
+  user.disconnected_at = Date.now();
   save(db);
   return user;
 }
