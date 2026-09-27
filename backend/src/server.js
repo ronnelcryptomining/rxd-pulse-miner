@@ -63,9 +63,9 @@ const QUESTS = {
   x: process.env.X_URL || "https://x.com/rxdpulseminer?s=11",
   youtube: process.env.YOUTUBE_URL || "https://youtube.com/@rxdpulseminer?si=bNyjQ3OXjbaZlGuU",
   facebook: process.env.FACEBOOK_URL || "https://www.facebook.com/share/1DsG5GnaJF/?mibextid=wwXIfr",
-  visit_yt: process.env.VISIT_YT_URL || "https://youtube.com/@rxdpulseminer?si=lItwmnS40EBCYgX2",
-  visit_x: process.env.VISIT_X_URL || "https://x.com/rxdpulseminer?s=11",
-  visit_fb: process.env.VISIT_FB_URL || "https://www.facebook.com/share/19gu5tuZth/?mibextid=wwXIfr",
+  visit_yt: process.env.VISIT_YT_URL || "https://www.youtube.com/@rxdpulseminer/videos",
+  visit_x: process.env.VISIT_X_URL || "https://x.com/rxdpulseminer",
+  visit_fb: process.env.VISIT_FB_URL || "https://www.facebook.com/share/1Dy6e2iiPE/?mibextid=wwXIfr",
   visit_web: process.env.VISIT_WEB_URL || "https://radiantblockchain.org/",
 };
 const BOT_USERNAME = (process.env.BOT_USERNAME || "").replace(/^@/, "");
@@ -177,7 +177,8 @@ app.post("/api/disconnect", (req, res) => {
   try {
     const id = userIdFromReq(req);
     disconnectUser(id);
-    res.json({ ok: true, address: "" });
+    const state = userState(id);
+    res.json({ ok: true, address: "", disconnected: true, ...(state || {}) });
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
   }
@@ -189,9 +190,10 @@ app.get("/api/me", (req, res) => {
     restoreScore(id, req.query.savedScore || req.body?.savedScore);
     touchStreak(id);
     const state = userState(id);
-    if (!state || !state.address) return res.status(404).json({ error: "Not connected" });
+    if (!state) return res.status(404).json({ error: "Not connected", disconnected: true });
     res.json({
       ...state,
+      disconnected: !state.address,
       nextClaimAt: state.lastClaimAt ? state.lastClaimAt + CLAIM_MS : 0,
     });
   } catch (err) {
