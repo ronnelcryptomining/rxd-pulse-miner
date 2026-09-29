@@ -64,7 +64,7 @@ export function touchStreak(id) {
     user.streak_blitz_used = false;
   }
   user.last_active_day = today;
-  if (user.streak === 4) user.wave1_reset_at = Date.now();
+  if (user.streak === 3) user.wave1_reset_at = Date.now();
   save(db);
   return user;
 }
@@ -347,7 +347,7 @@ export function maybePayReferrer(user) {
   return referrer;
 }
 
-const WAVE2_NAMES = ["visit_yt", "visit_x", "visit_fb", "visit_web"];
+const WAVE2_NAMES = ["visit_yt", "visit_yt2", "visit_x", "visit_fb", "visit_web"];
 
 export function wave1Complete(id) {
   const user = getUser(id);
@@ -409,7 +409,13 @@ export function userState(id) {
     wave2Done: wave2Complete(id),
     blitzReady: blitzUnlocked(id),
     blitzCount: user.blitz_count || 0,
-    payoutEligible: referralCount(user.referral_code) >= 5 && (user.blitz_count || 0) >= 300 && (user.surge_count || 0) >= 1000,
+    payoutEligible: referralCount(user.referral_code) >= 5
+      && (user.blitz_count || 0) >= 300
+      && (user.surge_count || 0) >= 1000
+      && (user.mine_count || 0) >= 600
+      && listQuests(id).some((q) => q.quest === "x" && q.completed_at > 0)
+      && listQuests(id).some((q) => q.quest === "facebook" && q.completed_at > 0)
+      && listQuests(id).some((q) => q.quest === "youtube" && q.completed_at > 0),
   };
 }
 
