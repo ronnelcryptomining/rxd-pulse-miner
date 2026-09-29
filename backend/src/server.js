@@ -50,23 +50,24 @@ app.get("/", (_req, res) => {
 
 const CLAIM_MS = Number(process.env.CLAIM_COOLDOWN_MS || 60 * 60 * 1000);
 const CLAIM_RXD = Number(process.env.CLAIM_RXD || 10);
-const QUEST1_RXD = Number(process.env.QUEST1_RXD || 100);
+const QUEST1_RXD = Number(process.env.QUEST1_RXD || 50);
 const QUEST2_RXD = Number(process.env.QUEST2_RXD || 25);
 const REF_RXD = Number(process.env.REF_RXD || 500);
 const WAVE1_MS = Number(process.env.WAVE1_COOLDOWN_MS || 24 * 60 * 60 * 1000);
 const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 6 * 60 * 60 * 1000);
 const VERIFY_MS = Number(process.env.QUEST_VERIFY_MS || 40 * 1000);
 const WAVE1 = ["discord", "telegram", "x", "youtube", "facebook"];
-const WAVE2 = ["visit_x", "visit_fb", "visit_yt", "visit_web"];
+const WAVE2 = ["visit_yt", "visit_yt2", "visit_x", "visit_fb", "visit_web"];
 const QUESTS = {
   discord: process.env.DISCORD_URL || "https://discord.gg/radiantblockchain",
-  telegram: process.env.TELEGRAM_CHANNEL || "https://t.me/RadiantBlockchain",
+  telegram: process.env.TELEGRAM_CHANNEL || "https://t.me/rxdpulseminer",
   x: process.env.X_URL || "https://x.com/rxdpulseminer?s=11",
   youtube: process.env.YOUTUBE_URL || "https://youtube.com/@rxdpulseminer?si=bNyjQ3OXjbaZlGuU",
   facebook: process.env.FACEBOOK_URL || "https://www.facebook.com/share/1DsG5GnaJF/?mibextid=wwXIfr",
-  visit_yt: process.env.VISIT_YT_URL || "https://youtube.com/@rxdpulseminer?si=29-Nr7F-3xoP5hM9",
-  visit_x: process.env.VISIT_X_URL || "https://x.com/rxdpulseminer?s=11",
-  visit_fb: process.env.VISIT_FB_URL || "https://www.facebook.com/share/1Dy6e2iiPE/?mibextid=wwXIfr",
+  visit_yt: process.env.VISIT_YT_URL || "https://youtu.be/oPNhgJrurh8?si=e5z_aDMqo4VLHv7R",
+  visit_yt2: process.env.VISIT_YT2_URL || "https://youtu.be/cEmHmYxpVW8?si=K3827AWLqAhjyTp9",
+  visit_x: process.env.VISIT_X_URL || "https://x.com/rxdpulseminer/status/2103568263171219761?s=46",
+  visit_fb: process.env.VISIT_FB_URL || "https://x.com/rxdpulseminer/status/2104288447251009931?s=46",
   visit_web: process.env.VISIT_WEB_URL || "https://radiantblockchain.org/",
 };
 const BOT_USERNAME = (process.env.BOT_USERNAME || "").replace(/^@/, "");
