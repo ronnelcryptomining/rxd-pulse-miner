@@ -29,6 +29,8 @@ import {
   surgeReady,
   restoreScore,
   findByAddress,
+  markTelegramMember,
+  resetSeason,
 } from "./db.js";
 import { dryRun, treasuryAddress, treasuryBalance } from "./payout.js";
 
@@ -56,6 +58,7 @@ const REF_RXD = Number(process.env.REF_RXD || 500);
 const WAVE1_MS = Number(process.env.WAVE1_COOLDOWN_MS || 24 * 60 * 60 * 1000);
 const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 6 * 60 * 60 * 1000);
 const VERIFY_MS = Number(process.env.QUEST_VERIFY_MS || 40 * 1000);
+const VERIFY2_MS = Number(process.env.QUEST2_VERIFY_MS || 50 * 1000);
 const WAVE1 = ["discord", "telegram", "x", "youtube", "facebook"];
 const WAVE2 = ["visit_yt", "visit_yt2", "visit_x", "visit_fb", "visit_web"];
 const QUESTS = {
@@ -100,6 +103,38 @@ function userIdFromReq(req) {
   });
 }
 
+function verifyMs(name) {
+  return WAVE2.includes(name) ? VERIFY2_MS : VERIFY_MS;
+}
+
+async function requireTelegramMember(user) {
+  const token = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN || "";
+  const chat = process.env.TELEGRAM_CHANNEL_ID || "@rxdpulseminer";
+  const tg = user && user.telegram_id;
+  if (!tg) {
+    const err = new Error("Open the game inside Telegram to join the channel");
+    err.status = 400;
+    throw err;
+  }
+  if (!token) {
+    const err = new Error("Telegram check is not set up yet. Add TELEGRAM_BOT_TOKEN on Render.");
+    err.status = 503;
+    throw err;
+  }
+  const url = "https://api.telegram.org/bot" + token + "/getChatMember?chat_id=" + encodeURIComponent(chat) + "&user_id=" + encodeURIComponent(tg);
+  const r = await fetch(url);
+  const data = await r.json().catch(() => ({}));
+  const status = data && data.result && data.result.status;
+  const ok = ["creator", "administrator", "member", "restricted"].includes(status);
+  if (!ok) {
+    const err = new Error("Join https://t.me/rxdpulseminer first, then try CLAIM again");
+    err.status = 403;
+    throw err;
+  }
+  markTelegramMember(user.id);
+  return true;
+}
+
 function questReward(name) {
   if (WAVE2.includes(name)) return QUEST2_RXD;
   return QUEST1_RXD;
@@ -134,6 +169,7 @@ app.get("/api/config", (_req, res) => {
     wave1Ms: WAVE1_MS,
     wave2Ms: WAVE2_MS,
     verifyMs: VERIFY_MS,
+    verify2Ms: VERIFY2_MS,
     quests: QUESTS,
     dryRun,
     payoutClaimEnabled: PAYOUT_CLAIM_ENABLED,
@@ -305,29 +341,32 @@ app.post("/api/surge", (req, res) => {
   }
 });
 
-app.post("/api/quest/:name/start", (req, res) => {
+app.post("/api/quest/:name/start", async (req, res) => {
   try {
     const name = req.params.name;
     if (!QUESTS[name]) return res.status(400).json({ error: "Unknown quest" });
     const id = userIdFromReq(req);
     const user = bindWallet(req, id);
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
+    await requireTelegramMember(user);
     const row = startQuest(id, name);
-    res.json({ ok: true, startedAt: row.started_at, verifyMs: VERIFY_MS });
+    res.json({ ok: true, startedAt: row.started_at, verifyMs: verifyMs(name) });
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
   }
 });
 
-app.post("/api/quest/:name", (req, res) => {
+app.post("/api/quest/:name", async (req, res) => {
   try {
     const name = req.params.name;
     if (!QUESTS[name]) return res.status(400).json({ error: "Unknown quest" });
     const id = userIdFromReq(req);
     const user = bindWallet(req, id);
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
+    await requireTelegramMember(user);
     const row = getQuest(id, name);
-    if (!row || !row.started_at || Date.now() - row.started_at < VERIFY_MS) {
+    const need = verifyMs(name);
+    if (!row || !row.started_at || Date.now() - row.started_at < need) {
       return res.status(429).json({ error: "Still verifying" });
     }
     const resetAt = WAVE1.includes(name) ? (user.wave1_reset_at || 0) : (user.wave2_reset_at || 0);
@@ -351,6 +390,10 @@ app.post("/api/quest/:name", (req, res) => {
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
   }
+});
+
+app.post("/api/admin/reset-season", requireAdmin, (_req, res) => {
+  res.json(resetSeason());
 });
 
 app.get("/api/admin/stats", requireAdmin, async (_req, res) => {
