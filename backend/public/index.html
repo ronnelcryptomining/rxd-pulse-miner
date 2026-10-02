@@ -584,7 +584,7 @@
         }
         openOut(btn.dataset.url);
         try {
-          const wait = wave2 ? VERIFY2_MS : VERIFY_MS;
+          const wait = card.classList.contains("wave2") ? VERIFY2_MS : VERIFY_MS;
           await api("/quest/" + quest + "/start", { method: "POST", body: JSON.stringify(identity()) });
           state.pending[quest] = Date.now() + wait;
           if (!state.quests[quest]) state.quests[quest] = { completed: 0, started: 0 };
