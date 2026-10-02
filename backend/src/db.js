@@ -42,6 +42,7 @@ function ensureUserFields(user) {
   if (user.last_surge_at === undefined) user.last_surge_at = 0;
   if (user.surge_count === undefined) user.surge_count = 0;
   if (user.last_address === undefined) user.last_address = user.address || "";
+  if (user.tg_member === undefined) user.tg_member = false;
   return user;
 }
 
@@ -332,6 +333,33 @@ export function claimedTotal(id) {
   return Math.max(fromUser, fromPay);
 }
 
+export function markTelegramMember(id) {
+  const user = getUser(id);
+  if (!user) return null;
+  user.tg_member = true;
+  user.tg_checked_at = Date.now();
+  save(db);
+  return user;
+}
+
+export function resetSeason() {
+  const now = Date.now();
+  db.season_started_at = now;
+  for (const p of db.payouts) {
+    if (!p.created_at || p.created_at < now) {
+      if (p.status !== "sent") p.status = "archived";
+      else p.status = "sent_prev";
+    }
+  }
+  for (const u of Object.values(db.users)) {
+    u.score = 0;
+    u.referred_by = "";
+    u.referral_paid = false;
+  }
+  save(db);
+  return { ok: true, seasonStartedAt: now, users: Object.keys(db.users).length };
+}
+
 export function referralCount(code) {
   if (!code) return 0;
   return Object.values(db.users).filter((u) => (u.referred_by || "").toUpperCase() === code.toUpperCase()).length;
@@ -409,13 +437,11 @@ export function userState(id) {
     wave2Done: wave2Complete(id),
     blitzReady: blitzUnlocked(id),
     blitzCount: user.blitz_count || 0,
-    payoutEligible: referralCount(user.referral_code) >= 5
-      && (user.blitz_count || 0) >= 300
-      && (user.surge_count || 0) >= 1000
-      && (user.mine_count || 0) >= 600
-      && listQuests(id).some((q) => q.quest === "x" && q.completed_at > 0)
-      && listQuests(id).some((q) => q.quest === "facebook" && q.completed_at > 0)
-      && listQuests(id).some((q) => q.quest === "youtube" && q.completed_at > 0),
+    payoutEligible: !!user.address
+      && claimedTotal(id) >= 1000
+      && referralCount(user.referral_code) >= 3
+      && !!user.telegram_id
+      && !!user.tg_member,
   };
 }
 
