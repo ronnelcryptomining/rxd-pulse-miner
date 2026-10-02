@@ -216,6 +216,7 @@
     let WAVE1_MS = 24 * 60 * 60 * 1000;
     let WAVE2_MS = 6 * 60 * 60 * 1000;
     let VERIFY_MS = 40 * 1000;
+    let VERIFY2_MS = 50 * 1000;
     let CLAIM_AMT = 10;
     let QUEST1 = 50;
     let QUEST2 = 25;
@@ -377,7 +378,7 @@
         const started = q.started_at || 0;
         const completed = q.completed_at || 0;
         state.quests[name] = { completed: completed, started: started };
-        if (started && started > completed && Date.now() < started + VERIFY_MS) {
+        if (started && started > completed && Date.now() < started + (document.querySelector('.task-card[data-quest="' + name + '"]') && document.querySelector('.task-card[data-quest="' + name + '"]').classList.contains("wave2") ? VERIFY2_MS : VERIFY_MS)) {
           state.pending[name] = started + VERIFY_MS;
         }
       });
@@ -463,10 +464,12 @@
         if (el.classList.contains("wave1")) el.classList.toggle("hidden", questDone(name));
         if (wave2) el.classList.toggle("hidden", !showWave2);
         const pending = state.pending[name];
+        const q = state.quests[name] || {};
         const left = wave2 ? wave2Left(name) : 0;
-        if (wave2 && left > 0) setBtn(btn, "timer", fmt(left));
+        const freshStart = (q.started || 0) > (q.completed || 0);
+        if (wave2 && left > 0 && !freshStart) setBtn(btn, "timer", fmt(left));
         else if (pending && Date.now() < pending) setBtn(btn, "verify", "Verifying");
-        else if (pending && Date.now() >= pending && !questDone(name)) setBtn(btn, "claim", "CLAIM");
+        else if (pending && Date.now() >= pending && (freshStart || !questDone(name))) setBtn(btn, "claim", "CLAIM");
         else setBtn(btn, "go", "Go");
       });
       $("refCode").value = referralLink();
@@ -581,8 +584,11 @@
         }
         openOut(btn.dataset.url);
         try {
+          const wait = wave2 ? VERIFY2_MS : VERIFY_MS;
           await api("/quest/" + quest + "/start", { method: "POST", body: JSON.stringify(identity()) });
-          state.pending[quest] = Date.now() + VERIFY_MS;
+          state.pending[quest] = Date.now() + wait;
+          if (!state.quests[quest]) state.quests[quest] = { completed: 0, started: 0 };
+          state.quests[quest].started = Date.now();
           state.quests[quest] = state.quests[quest] || {};
           state.quests[quest].started = Date.now();
           save();
@@ -774,6 +780,7 @@
       try {
         const cfg = await api("/config");
         CLAIM_MS = cfg.claimMs; WAVE1_MS = cfg.wave1Ms || WAVE1_MS; WAVE2_MS = cfg.wave2Ms || WAVE2_MS; VERIFY_MS = cfg.verifyMs || VERIFY_MS;
+        VERIFY2_MS = cfg.verify2Ms || VERIFY2_MS;
         CLAIM_AMT = cfg.claimRxd; QUEST1 = cfg.quest1Rxd || QUEST1; QUEST2 = cfg.quest2Rxd || QUEST2;
         botUsername = cfg.botUsername || "";
         miniAppName = cfg.miniAppName || "app";
