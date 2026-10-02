@@ -378,9 +378,9 @@
         const started = q.started_at || 0;
         const completed = q.completed_at || 0;
         state.quests[name] = { completed: completed, started: started };
-        if (started && started > completed && Date.now() < started + (document.querySelector('.task-card[data-quest="' + name + '"]') && document.querySelector('.task-card[data-quest="' + name + '"]').classList.contains("wave2") ? VERIFY2_MS : VERIFY_MS)) {
-          state.pending[name] = started + VERIFY_MS;
-        }
+        const card = document.querySelector('.task-card[data-quest="' + name + '"]');
+        const wait = card && card.classList.contains("wave2") ? VERIFY2_MS : VERIFY_MS;
+        if (started && started > completed) state.pending[name] = started + wait;
       });
       save();
     }
@@ -467,9 +467,11 @@
         const q = state.quests[name] || {};
         const left = wave2 ? wave2Left(name) : 0;
         const freshStart = (q.started || 0) > (q.completed || 0);
-        if (wave2 && left > 0 && !freshStart) setBtn(btn, "timer", fmt(left));
-        else if (pending && Date.now() < pending) setBtn(btn, "verify", "Verifying");
-        else if (pending && Date.now() >= pending && (freshStart || !questDone(name))) setBtn(btn, "claim", "CLAIM");
+        const wait = wave2 ? VERIFY2_MS : VERIFY_MS;
+        const readyAt = freshStart ? (q.started + wait) : 0;
+        if (freshStart && Date.now() < readyAt) setBtn(btn, "verify", "Verifying");
+        else if (freshStart && Date.now() >= readyAt) setBtn(btn, "claim", "CLAIM");
+        else if (wave2 && left > 0) setBtn(btn, "timer", fmt(left));
         else setBtn(btn, "go", "Go");
       });
       $("refCode").value = referralLink();
@@ -574,11 +576,12 @@
         if (mode === "claim") {
           AudioBus.claim();
           try {
-            applyServer((await api("/quest/" + quest, { method: "POST", body: JSON.stringify(identity()) })).state);
+            const res = await api("/quest/" + quest, { method: "POST", body: JSON.stringify(identity()) });
+            applyServer(res.state);
             delete state.pending[quest];
             save();
             renderAll();
-            if (state.wave2Done) startCinematic("wave2");
+            if (res.pulseReady) startCinematic("wave2");
           } catch (err) { alert(err.message); }
           return;
         }
