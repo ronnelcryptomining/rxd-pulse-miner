@@ -366,9 +366,13 @@ app.post("/api/quest/:name", async (req, res) => {
     await requireTelegramMember(user);
     const row = getQuest(id, name);
     const need = verifyMs(name);
-    if (!row || !row.started_at || Date.now() - row.started_at < need) {
+    if (!row || !row.started_at || row.started_at <= (row.completed_at || 0)) {
+      return res.status(400).json({ error: "Tap Go first, then wait for CLAIM" });
+    }
+    if (Date.now() - row.started_at < need) {
       return res.status(429).json({ error: "Still verifying" });
     }
+    const wasDone = wave2Complete(id);
     const resetAt = WAVE1.includes(name) ? (user.wave1_reset_at || 0) : (user.wave2_reset_at || 0);
     const cooldown = WAVE2.includes(name) ? WAVE2_MS : 0;
     const first = completeQuest(id, name, cooldown, WAVE1.includes(name), resetAt);
@@ -385,6 +389,7 @@ app.post("/api/quest/:name", async (req, res) => {
       payoutId,
       amountRxd,
       url: QUESTS[name],
+      pulseReady: !wasDone && wave2Complete(id),
       state: userState(id),
     });
   } catch (err) {
