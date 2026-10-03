@@ -24,6 +24,7 @@ import {
   resetAll,
   wave1Complete,
   wave2Complete,
+  wave2ClaimedCount,
   resolveUserId,
   markSurge,
   surgeReady,
@@ -389,7 +390,8 @@ app.post("/api/quest/:name", async (req, res) => {
       payoutId,
       amountRxd,
       url: QUESTS[name],
-      pulseReady: !wasDone && wave2Complete(id),
+      pulseReady: !wasDone && wave2ClaimedCount(id) === 5,
+      wave2Claimed: wave2ClaimedCount(id),
       state: userState(id),
     });
   } catch (err) {
