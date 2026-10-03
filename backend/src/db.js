@@ -42,7 +42,10 @@ function ensureUserFields(user) {
   if (user.last_surge_at === undefined) user.last_surge_at = 0;
   if (user.surge_count === undefined) user.surge_count = 0;
   if (user.last_address === undefined) user.last_address = user.address || "";
-  if (user.tg_member === undefined) user.tg_member = false;
+  if (user.wave2_epoch !== 3) {
+    user.wave2_epoch = 3;
+    user.wave2_reset_at = Date.now();
+  }
   return user;
 }
 
@@ -385,11 +388,15 @@ export function wave1Complete(id) {
   return names.every((name) => qs.some((q) => q.quest === name && q.completed_at > reset));
 }
 
-export function wave2Complete(id) {
+export function wave2ClaimedCount(id) {
   const user = getUser(id);
   const reset = (user && user.wave2_reset_at) || 0;
   const qs = listQuests(id);
-  return WAVE2_NAMES.every((name) => qs.some((q) => q.quest === name && q.completed_at > reset));
+  return WAVE2_NAMES.filter((name) => qs.some((q) => q.quest === name && q.completed_at > reset)).length;
+}
+
+export function wave2Complete(id) {
+  return wave2ClaimedCount(id) === WAVE2_NAMES.length;
 }
 
 export function blitzUnlocked(id) {
