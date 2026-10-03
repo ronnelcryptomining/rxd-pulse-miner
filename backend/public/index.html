@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>RXD Pulse Miner</title>
+  <title>RXD Miner</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
@@ -24,16 +24,15 @@
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       overflow: hidden;
     }
-    .app { max-width: 430px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; padding: 8px 12px 70px; }
-    .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .brand { display: flex; align-items: center; gap: 6px; font-weight: 800; letter-spacing: .03em; font-size: 13px; white-space: nowrap; }
+    .app { max-width: 430px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; padding: 12px 16px 78px; }
+    .top { display: flex; align-items: center; justify-content: space-between; }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: .04em; }
     .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 10px var(--teal); }
-    .wallet-chip { font-size: 11px; color: var(--teal); border: 1px solid #21464c; background: #0a1b20; border-radius: 999px; padding: 6px 10px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-    .bal { text-align: center; margin: 10px 0 2px; }
+    .wallet-chip { font-size: 11px; color: var(--teal); border: 1px solid #21464c; background: #0a1b20; border-radius: 999px; padding: 6px 10px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bal { text-align: center; margin: 8px 0 4px; }
     .bal .amt { font-size: 34px; font-weight: 800; letter-spacing: -1px; }
     .bal .amt span { color: var(--teal); font-size: 16px; margin-left: 4px; }
-    .tagline { text-align: center; color: var(--teal); font-size: 12px; letter-spacing: .18em; font-weight: 800; margin-bottom: 4px; pointer-events: none; opacity: .72; }
-    .tagline.live { pointer-events: auto; cursor: pointer; opacity: 1; animation: glow 1.2s ease-in-out infinite; text-shadow: 0 0 12px rgba(62,200,200,.8); }
+    .bal .lbl { color: var(--muted); font-size: 12px; }
     .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     .orb-wrap { position: relative; width: 236px; height: 236px; }
     .orb-wrap svg.ring { position: absolute; inset: 0; transform: rotate(-90deg); }
@@ -41,105 +40,45 @@
     .orb.ready { animation: glow 1.8s ease-in-out infinite; }
     .orb.locked { opacity: .72; }
     @keyframes glow { 0%,100% { box-shadow: 0 0 30px rgba(62,200,200,.22); } 50% { box-shadow: 0 0 64px rgba(62,200,200,.48); } }
-    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-    @keyframes pulseClaim { 0%,100% { box-shadow: 0 0 0 0 rgba(62,200,200,.55); transform: scale(1); } 50% { box-shadow: 0 0 18px 4px rgba(62,200,200,.45); transform: scale(1.04); } }
     .orb:active { transform: scale(.97); }
     .logo { width: 88px; height: 88px; }
     .claim-label { margin-top: 14px; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
     .claim-label b { color: var(--teal); }
-    .bolt-text {
-      margin-top: 10px;
-      text-align: center;
-      color: #d8ffff;
-      font-size: 15px;
-      font-weight: 900;
-      letter-spacing: .22em;
-      font-style: italic;
-      text-transform: uppercase;
-      transform: skewX(-12deg);
-      text-shadow:
-        2px 0 #3ec8c8,
-        -1px 0 #ffffff,
-        0 0 8px #7af0f0;
-    }
-    .ath-static {
-      margin: 0 0 10px;
-      text-align: center;
-      color: #ffe28a;
-      font-size: 14px;
-      font-weight: 800;
-      letter-spacing: .08em;
-    }
     .toast { height: 18px; margin-top: 8px; font-size: 13px; color: var(--ok); opacity: 0; }
     .toast.show { opacity: 1; }
-    .screen { display: none; flex: 1; overflow: hidden; }
-    .screen.on { display: flex; flex-direction: column; min-height: 0; }
-    .connect-box, .task-card, .ref-box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; }
-    label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-    input { width: 100%; background: #071114; border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 9px 10px; font-size: 12px; outline: none; }
-    .btn { border: 0; background: linear-gradient(180deg, #4ad4d4, #1ea8b0); color: #041416; font-weight: 800; border-radius: 10px; padding: 10px 8px; cursor: pointer; min-width: 0; flex: 1; font-size: 12px; }
+    .screen { display: none; flex: 1; overflow: auto; }
+    .screen.on { display: flex; flex-direction: column; }
+    .connect-box, .task-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+    label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    input { width: 100%; background: #071114; border: 1px solid var(--line); color: var(--text); border-radius: 12px; padding: 12px; font-size: 13px; outline: none; }
+    .btn { border: 0; background: linear-gradient(180deg, #4ad4d4, #1ea8b0); color: #041416; font-weight: 800; border-radius: 12px; padding: 12px 14px; cursor: pointer; }
     .btn.ghost { background: transparent; color: var(--teal); border: 1px solid #24555c; }
-    .btn.wide { width: 100%; margin-top: 8px; flex: none; }
-    .btn.disabled, .btn:disabled { background: #1a2a2e; color: #5b7378; border: 1px solid #24383c; cursor: not-allowed; box-shadow: none; animation: none; }
-    .btn.verify { animation: blink .8s step-end infinite; background: #1d3a40; color: var(--gold); }
-    .btn.claim-now { animation: pulseClaim 1s ease-in-out infinite; background: linear-gradient(180deg, #7af0f0, #2ad0c8); }
-    .btn.timer { min-width: 96px; background: #122226; color: var(--teal); font-variant-numeric: tabular-nums; }
-    .row { display: flex; gap: 6px; margin-top: 8px; }
-    .note { color: var(--muted); font-size: 10px; line-height: 1.35; margin-top: 6px; }
+    .btn.wide { width: 100%; margin-top: 10px; }
+    .btn.disabled, .btn:disabled { background: #1a2a2e; color: #5b7378; border: 1px solid #24383c; cursor: not-allowed; box-shadow: none; }
+    .row { display: flex; gap: 8px; margin-top: 8px; }
+    .note { color: var(--muted); font-size: 11px; line-height: 1.45; margin-top: 8px; }
     a { color: var(--teal); }
-    .tasks { flex: 1; display: flex; flex-direction: column; gap: 6px; padding-top: 4px; min-height: 0; }
-    .task-card { display: flex; align-items: center; gap: 8px; margin-bottom: 0; flex: 1; min-height: 0; }
-    .task-card .ico { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: #102328; color: var(--teal); font-weight: 800; font-size: 12px; flex-shrink: 0; }
-    .task-card .meta { flex: 1; min-width: 0; }
-    .task-card .t { font-weight: 700; font-size: 12px; }
-    .task-card .r { color: var(--gold); font-size: 11px; margin-top: 1px; }
-    .task-card .q-btn { flex: 0 0 78px; }
+    .tasks { gap: 10px; padding-top: 8px; }
+    .task-card { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .task-card .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: #102328; color: var(--teal); font-weight: 800; }
+    .task-card .meta { flex: 1; }
+    .task-card .t { font-weight: 700; font-size: 14px; }
+    .task-card .r { color: var(--gold); font-size: 12px; margin-top: 3px; }
     .task-card.hidden { display: none; }
-    .check { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: 12px; color: var(--muted); }
-    .check input { width: auto; margin-top: 2px; }
-    .ref-box { margin-top: 8px; }
-    .ref-line { display: flex; gap: 6px; align-items: center; }
-    .ref-line input { flex: 1; }
-    .ref-line .btn { flex: 0 0 64px; }
-    .wallet-screen { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-    .wallet-bottom { margin-top: auto; padding-top: 10px; }
     .nav { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: min(430px, 100%); display: grid; grid-template-columns: 1fr 1fr 1fr; background: #081216ee; border-top: 1px solid #1a2e36; padding: 8px 8px calc(10px + env(safe-area-inset-bottom)); }
     .nav button { background: none; border: 0; color: var(--muted); font-size: 11px; font-weight: 700; padding: 8px; cursor: pointer; }
     .nav button.on { color: var(--teal); }
-    #storm { display: none; position: fixed; inset: 0; z-index: 40; background: #050b0ecc; overflow: hidden; }
-    #storm.on { display: block; }
-    .storm-result { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 24px; }
-    .storm-result .big { font-size: 42px; font-weight: 800; color: #7af0f0; text-shadow: 0 0 18px rgba(62,200,200,.6); }
-    .storm-result .sub { font-size: 16px; color: var(--gold); letter-spacing: .08em; }
-    #storm.intro { background: #020508f0; animation: flash 0.18s steps(2) infinite; }
-    @keyframes flash { 0%,100% { background: #020508f0; } 50% { background: #c8ffff33; } }
-    #board { display: none; position: fixed; inset: 0; z-index: 30; background: #050b0ef2; padding: 24px 16px 80px; overflow: auto; }
-    #board.on { display: block; }
-    #board h3 { text-align: center; color: var(--teal); margin-bottom: 12px; letter-spacing: .12em; }
-    #board .rowline { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 8px 0; border-bottom: 1px solid #1a2e36; }
-    #board .rank { color: var(--gold); width: 24px; }
-    .bolt { position: absolute; width: 28px; height: 44px; color: #7af0f0; filter: drop-shadow(0 0 8px #3ec8c8); animation: fall linear forwards; }
-    .bolt.boom { animation: none; pointer-events: none; filter: none; }
-    @keyframes fall { from { transform: translateY(-50px); } to { transform: translateY(110vh); } }
-    .boom-flash { position: absolute; width: 72px; height: 72px; margin: -22px 0 0 -22px; border-radius: 50%; background: radial-gradient(circle, #ffffff 0%, #7af0f0 28%, #3ec8c800 70%); animation: boom .28s ease-out forwards; pointer-events: none; }
-    .boom-shard { position: absolute; width: 4px; height: 16px; margin-left: 12px; background: #7af0f0; box-shadow: 0 0 8px #3ec8c8; animation: shard .32s ease-out forwards; pointer-events: none; }
-    @keyframes boom { from { transform: scale(.2); opacity: 1; } to { transform: scale(2.4); opacity: 0; } }
-    @keyframes shard { from { transform: rotate(var(--r)) translateY(0); opacity: 1; } to { transform: rotate(var(--r)) translateY(42px); opacity: 0; } }
-    .core { position: absolute; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #041416; font-weight: 900; font-size: 11px; background: radial-gradient(circle at 35% 30%, #d8ffff, #3ec8c8 45%, #0b6e74); box-shadow: 0 0 18px #3ec8c8, 0 0 4px #fff; animation: zip linear forwards; }
-    @keyframes zip { from { transform: scale(.4); } to { transform: scale(1.15); } }
-    .combo-pop { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); color: #d7c27a; font-weight: 800; letter-spacing: .2em; pointer-events: none; }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="top">
-      <div class="brand"><span class="dot"></span> RXD PULSE MINER</div>
+      <div class="brand"><span class="dot"></span> RXD MINER</div>
       <div class="wallet-chip" id="chip">Connect wallet</div>
     </div>
     <div class="bal">
-      <div class="amt" id="claimed">0 <span>RXD</span></div>
+      <div class="amt" id="claimed">0.000 <span>RXD</span></div>
     </div>
-    <div class="tagline" id="tagline">THE FUTURE IS RADIANT</div>
     <section class="screen on" id="screen-mine">
       <div class="stage">
         <div class="orb-wrap">
@@ -154,57 +93,32 @@
             </svg>
           </button>
         </div>
-        <div class="claim-label" id="timer" style="cursor:pointer">CONNECT WALLET</div>
-        <div class="bolt-text" id="chainTitle">RADIANT BLOCKCHAIN</div>
-        <div class="toast" id="toast">+10 RXD queued</div>
+        <div class="claim-label" id="timer">CONNECT WALLET</div>
+        <div class="toast" id="toast">+0.001 RXD queued</div>
       </div>
     </section>
     <section class="screen" id="screen-tasks">
-      <div class="tasks" id="taskList">
-        <div class="task-card wave1" data-quest="telegram" data-reward="50"><div class="ico">T</div><div class="meta"><div class="t">Join RXD Pulse Miner on Telegram</div><div class="r">+50 RXD</div></div><button class="btn q-btn" data-url="https://t.me/rxdpulseminer">Go</button></div>
-        <div class="task-card wave1" data-quest="x" data-reward="50"><div class="ico">X</div><div class="meta"><div class="t">Follow RXD Pulse on X</div><div class="r">+50 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer?s=11">Go</button></div>
-        <div class="task-card wave1" data-quest="youtube" data-reward="50"><div class="ico">Y</div><div class="meta"><div class="t">Subscribe on YouTube</div><div class="r">+50 RXD</div></div><button class="btn q-btn" data-url="https://youtube.com/@rxdpulseminer?si=bNyjQ3OXjbaZlGuU">Go</button></div>
-        <div class="task-card wave1" data-quest="facebook" data-reward="50"><div class="ico">F</div><div class="meta"><div class="t">Follow RXD Pulse on Facebook</div><div class="r">+50 RXD</div></div><button class="btn q-btn" data-url="https://www.facebook.com/share/1DsG5GnaJF/?mibextid=wwXIfr">Go</button></div>
-        <div class="task-card wave1" data-quest="discord" data-reward="50"><div class="ico">D</div><div class="meta"><div class="t">Join Radiant Blockchain on Discord</div><div class="r">+50 RXD</div></div><button class="btn q-btn" data-url="https://discord.gg/radiantblockchain">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_yt" data-reward="25"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #1</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/oPNhgJrurh8?si=e5z_aDMqo4VLHv7R">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_yt2" data-reward="25"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #2</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/cEmHmYxpVW8?si=K3827AWLqAhjyTp9">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_x" data-reward="25"><div class="ico">X</div><div class="meta"><div class="t">Like & Share on X #1</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer/status/2103568263171219761?s=46">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_fb" data-reward="25"><div class="ico">X</div><div class="meta"><div class="t">Like & Share on X #2</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer/status/2104288447251009931?s=46">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_web" data-reward="25"><div class="ico">R</div><div class="meta"><div class="t">Visit Radiant Website</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://radiantblockchain.org/">Go</button></div>
+      <div class="tasks">
+        <div class="task-card" data-quest="discord"><div class="ico">D</div><div class="meta"><div class="t">Join Discord</div><div class="r">+0.001 RXD</div></div><button class="btn q-btn" data-url="https://discord.com">Go</button></div>
+        <div class="task-card" data-quest="telegram"><div class="ico">T</div><div class="meta"><div class="t">Join Telegram</div><div class="r">+0.001 RXD</div></div><button class="btn q-btn" data-url="https://t.me/RadiantBlockchain">Go</button></div>
+        <div class="task-card" data-quest="x"><div class="ico">X</div><div class="meta"><div class="t">Follow RXD Miner on X</div><div class="r">+0.001 RXD</div></div><button class="btn q-btn" data-url="https://x.com">Go</button></div>
+        <div class="task-card" data-quest="youtube"><div class="ico">Y</div><div class="meta"><div class="t">Subscribe on YouTube</div><div class="r">+0.001 RXD</div></div><button class="btn q-btn" data-url="https://youtube.com">Go</button></div>
+        <p class="note">Tasks hide after claim and return after 24 hours.</p>
       </div>
     </section>
     <section class="screen" id="screen-wallet">
-      <div class="connect-box wallet-screen">
+      <div class="connect-box">
         <label>Photonic public address</label>
         <input id="addrInput" placeholder="Paste receive address only" autocomplete="off" />
         <div class="row">
           <button class="btn" id="connectBtn">Connect</button>
-          <button class="btn" id="disconnectBtn">Disconnect</button>
-          <button class="btn" type="button" id="createWalletBtn">Create Wallet</button>
+          <a class="btn ghost" href="https://photonic-wallet.com" target="_blank" rel="noopener">Create wallet</a>
         </div>
-        <p class="note">Create a wallet at photonic-wallet.com first. Paste the public receive address only. Never paste a seed phrase or password. One Telegram account can use one wallet.</p>
+        <button class="btn wide disabled" id="payoutBtn" disabled title="Coming later">CLAIM RXD TOKENS</button>
         <p class="note" id="addrError" style="color:#ff8a8a;display:none"></p>
-        <div class="ref-box">
-          <label>Your referral link</label>
-          <div class="ref-line">
-            <input id="refCode" readonly placeholder="Connect to get your link" />
-            <button class="btn ghost" id="copyRef">Copy</button>
-          </div>
-          <p class="note" id="refStats">Referrals: 0 · Earn +100 RXD when a new player opens your link, connects, and mines.</p>
-        </div>
-        <div class="wallet-bottom">
-          <div class="ath-static">ALL TIME HIGH $0.00918</div>
-          <button class="btn ghost wide" id="boardBtn">LEADERBOARD</button>
-          <button class="btn wide disabled" id="payoutBtn" disabled title="Coming later">CLAIM RXD TOKENS</button>
-        </div>
+        <p class="note">Create a wallet at photonic-wallet.com first. Paste the public receive address only. Never paste a seed phrase or password. CLAIM RXD TOKENS will pay your mined total later, when it is turned on.</p>
       </div>
     </section>
-  </div>
-  <div id="storm"></div>
-  <div id="board">
-    <h3>TOP 20 ALL TIME</h3>
-    <div id="boardList"></div>
-    <button class="btn wide" id="boardClose" style="margin-top:16px">Close</button>
   </div>
   <nav class="nav">
     <button class="on" data-tab="mine">Mine</button>
@@ -212,138 +126,28 @@
     <button data-tab="wallet">Wallet</button>
   </nav>
   <script>
-    let CLAIM_MS = 60 * 60 * 1000;
-    let WAVE1_MS = 24 * 60 * 60 * 1000;
-    let WAVE2_MS = 6 * 60 * 60 * 1000;
-    let VERIFY_MS = 40 * 1000;
-    let VERIFY2_MS = 50 * 1000;
-    let CLAIM_AMT = 10;
-    let QUEST1 = 50;
-    let QUEST2 = 25;
-    const WAVE1 = ["discord", "telegram", "x", "youtube", "facebook"];
-    const KEY = "rxd-pulse-v16";
+    let CLAIM_MS = 3 * 60 * 60 * 1000;
+    let QUEST_MS = 24 * 60 * 60 * 1000;
+    let CLAIM_AMT = 0.001;
+    let QUEST_AMT = 0.001;
+    const KEY = "rxd-pulse-v3";
     const API = localStorage.getItem("rxd-api") || "/api";
     const CIRC = 2 * Math.PI * 108;
-    const AudioBus = (function() {
-      let ctx, master;
-      function ac() {
-        if (!ctx) {
-          ctx = new (window.AudioContext || window.webkitAudioContext)();
-          master = ctx.createGain();
-          master.gain.value = 0.22;
-          master.connect(ctx.destination);
-        }
-        if (ctx.state === "suspended") ctx.resume();
-        return ctx;
-      }
-      function beep(freq, dur, type, vol) {
-        const c = ac();
-        const o = c.createOscillator();
-        const g = c.createGain();
-        o.type = type || "sine";
-        o.frequency.value = freq;
-        g.gain.setValueAtTime(vol || 0.08, c.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
-        o.connect(g); g.connect(master);
-        o.start(); o.stop(c.currentTime + dur);
-      }
-      return {
-        unlock: function() { ac(); },
-        click: function() { beep(880, 0.05, "triangle", 0.05); beep(1320, 0.04, "sine", 0.03); },
-        claim: function() { beep(660, 0.1, "triangle", 0.06); setTimeout(function(){ beep(990, 0.14, "sine", 0.05); }, 70); },
-        zap: function() { beep(1400, 0.06, "triangle", 0.05); },
-        thunder: function() { beep(80, 0.28, "sine", 0.05); }
-      };
-    })();
-    document.addEventListener("pointerdown", function(e) {
-      AudioBus.unlock();
-      if (e.target.closest("button, .btn, a.btn, .orb, .tagline.live, .wallet-chip")) AudioBus.click();
-    }, true);
     const tg = window.Telegram && window.Telegram.WebApp;
-    if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor("#071014"); tg.setBackgroundColor("#071014"); } catch (e) {} }
+    if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor("#071014"); tg.setBackgroundColor("#071014"); }
     const $ = (id) => document.getElementById(id);
     const clientId = localStorage.getItem("rxd-client") || crypto.randomUUID();
     localStorage.setItem("rxd-client", clientId);
-    function readTgUser() {
-      const raw = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-      if (raw && raw.id) return raw;
-      try {
-        const q = new URLSearchParams((tg && tg.initData) || "");
-        const u = JSON.parse(q.get("user") || "null");
-        if (u && u.id) return u;
-      } catch (e) {}
-      return null;
-    }
-    const tgUser = readTgUser();
-    const telegramId = (tgUser && tgUser.id) || localStorage.getItem("rxd-tg-id") || null;
-    if (telegramId) localStorage.setItem("rxd-tg-id", String(telegramId));
-    const telegramUsername = (tgUser && tgUser.username) || "";
-    const startParam = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || "";
-    const params = new URLSearchParams(location.search);
+    const telegramId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || null;
     const state = load();
-    const incomingRef = (params.get("ref") || params.get("startapp") || startParam || "").toUpperCase();
-    if (incomingRef && !state.refUsed) state.pendingRef = incomingRef;
     function load() { try { return JSON.parse(localStorage.getItem(KEY)) || defaults(); } catch(e) { return defaults(); } }
-    function defaults() { return { address: "", claimed: 0, lastClaim: 0, quests: {}, pending: {}, referralCode: "", referrals: 0, pendingRef: "", streak: 0, blitzReady: false }; }
-    function save() {
-      localStorage.setItem(KEY, JSON.stringify(state));
-      if (state.address) localStorage.setItem("rxd-addr", state.address);
-      if (Number(state.claimed) > 0) localStorage.setItem("rxd-claimed", String(state.claimed));
-    }
-    (function recover() {
-      const savedAddr = localStorage.getItem("rxd-addr") || "";
-      const savedClaim = Number(localStorage.getItem("rxd-claimed") || 0);
-      if (!state.address && savedAddr) state.address = savedAddr;
-      if (savedClaim > Number(state.claimed || 0)) state.claimed = savedClaim;
-    })();
-    let botUsername = "";
-    let miniAppName = "app";
-    function cleanBot(name) {
-      let n = String(name || "").trim();
-      n = n.replace(/^https?:\/\/(t\.me|telegram\.me)\//i, "").replace(/^@/, "");
-      n = n.split(/[/?#\s]/)[0];
-      if (!/^[A-Za-z0-9_]{5,32}$/.test(n)) return "";
-      return n;
-    }
-    function referralLink() {
-      if (!state.referralCode) return "";
-      const bot = cleanBot(botUsername);
-      const app = String(miniAppName || "app").replace(/[^A-Za-z0-9_]/g, "") || "app";
-      if (bot) return "https://t.me/" + bot + "/" + app + "?startapp=" + state.referralCode;
-      return (location.origin || "https://rxd-pulse-miner.onrender.com") + "/?ref=" + state.referralCode;
-    }
-    const telegramName = (tgUser && (tgUser.first_name || tgUser.username)) || "";
-    function identity() {
-      return { clientId, telegramId, telegramUsername, telegramName, ref: state.pendingRef || "", startParam: startParam || state.pendingRef || "", savedScore: Number(state.claimed || localStorage.getItem("rxd-claimed") || 0), address: state.address || localStorage.getItem("rxd-addr") || "" };
-    }
-    function openOut(url) {
-      if (!url) return;
-      const web = window.Telegram && window.Telegram.WebApp;
-      const isTg = /^(https?:\/\/)?(t\.me|telegram\.me)\//i.test(url);
-      try {
-        if (web && isTg && web.openTelegramLink) {
-          web.openTelegramLink(url);
-          return;
-        }
-        if (web && web.openLink) {
-          web.openLink(url, { try_instant_view: false });
-          return;
-        }
-      } catch (e) {}
-      const a = document.createElement("a");
-      a.href = url;
-      a.target = "_blank";
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    }
+    function defaults() { return { address: "", claimed: 0, lastClaim: 0, quests: {} }; }
+    function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+    function identity() { return { clientId, telegramId }; }
     async function api(path, opts) {
       opts = opts || {};
       const headers = { "Content-Type": "application/json", "x-client-id": clientId };
       if (telegramId) headers["x-telegram-id"] = String(telegramId);
-      const addr = (state && state.address) || localStorage.getItem("rxd-addr") || "";
-      if (addr) headers["x-wallet-address"] = addr;
       const res = await fetch(API + path, Object.assign({}, opts, { headers }));
       const data = await res.json().catch(function(){ return {}; });
       if (!res.ok) throw new Error(data.error || res.statusText);
@@ -351,68 +155,32 @@
     }
     function applyServer(s) {
       if (!s) return;
-      if (s.address) {
-        state.address = s.address;
-        localStorage.removeItem("rxd-disconnected");
-      } else if (s.disconnected) {
-        state.address = "";
-        localStorage.removeItem("rxd-addr");
-        localStorage.setItem("rxd-disconnected", "1");
-      }
-      const incoming = Number(s.claimed || 0);
-      const kept = Number(state.claimed || localStorage.getItem("rxd-claimed") || 0);
-      state.claimed = Math.max(incoming, kept);
+      state.address = s.address || "";
+      state.claimed = Number(s.claimed || 0);
       state.lastClaim = s.lastClaimAt || 0;
-      state.referralCode = s.referralCode || state.referralCode || "";
-      state.referrals = Number(s.referrals || 0);
-      state.streak = Number(s.streak || 0);
-      state.wave1Done = !!s.wave1Done;
-      state.wave2Done = !!s.wave2Done;
-      state.wave1Reset = s.wave1Reset || 0;
-      state.wave2Reset = s.wave2Reset || 0;
-      state.blitzReady = !!s.blitzReady;
       state.quests = {};
-      state.pending = {};
       (s.quests || []).forEach(function(q) {
         const name = q.quest || q;
-        const started = q.started_at || 0;
-        const completed = q.completed_at || 0;
-        state.quests[name] = { completed: completed, started: started };
-        const card = document.querySelector('.task-card[data-quest="' + name + '"]');
-        const wait = card && card.classList.contains("wave2") ? VERIFY2_MS : VERIFY_MS;
-        if (started && started > completed) state.pending[name] = started + wait;
+        state.quests[name] = q.completed_at || 0;
       });
       save();
     }
     function isPhotonicAddress(v) {
-      const s = String(v || "").replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\s+/g, "").trim();
-      if (!s) return false;
+      if (!v || /\s/.test(v)) return false;
+      const s = v.trim();
       if (/^0x[0-9a-fA-F]{40}$/.test(s)) return false;
-      if (/^(radaddr:|bitcoincash:|radiant:)/i.test(s)) return true;
+      if (/radaddr:[a-z0-9]+$/i.test(s)) return true;
       if (/^rxd1[a-z0-9]{20,}$/i.test(s)) return true;
-      if (/^[13][a-zA-Z0-9]{24,48}$/.test(s)) return true;
+      if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(s)) return true;
       return false;
     }
     function showTab(name) {
       document.querySelectorAll(".nav button").forEach(function(b){ b.classList.toggle("on", b.dataset.tab === name); });
       document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("on"); });
       $("screen-" + name).classList.add("on");
-      $("tagline").style.display = name === "mine" ? "block" : "none";
     }
     function remainingClaim() { if (!state.lastClaim) return 0; return Math.max(0, state.lastClaim + CLAIM_MS - Date.now()); }
-    function questDone(name) {
-      const q = state.quests[name];
-      if (!q || !q.completed) return false;
-      const reset = WAVE1.indexOf(name) >= 0 ? (state.wave1Reset || 0) : (state.wave2Reset || 0);
-      return q.completed > reset;
-    }
-    function waveLeft(name, ms) {
-      const q = state.quests[name];
-      if (!q || !q.completed) return 0;
-      return Math.max(0, q.completed + ms - Date.now());
-    }
-    function wave2Left(name) { return waveLeft(name, WAVE2_MS); }
-    function wave1Left(name) { return waveLeft(name, WAVE1_MS); }
+    function remainingQuest(name) { const at = state.quests[name]; if (!at) return 0; return Math.max(0, at + QUEST_MS - Date.now()); }
     function fmt(ms) {
       const s = Math.ceil(ms / 1000);
       const h = Math.floor(s / 3600);
@@ -421,13 +189,8 @@
       return [h, m, sec].map(function(n){ return String(n).padStart(2, "0"); }).join(":");
     }
     function shortAddr(a) { return a ? a.slice(0,6) + "…" + a.slice(-4) : "Connect wallet"; }
-    function fmtAmt(n) {
-      const x = Number(n || 0);
-      return Number.isInteger(x) ? String(x) : x.toFixed(3);
-    }
-    function wave1Done() { return WAVE1.every(questDone); }
     function renderMine() {
-      $("claimed").innerHTML = fmtAmt(state.address ? state.claimed : 0) + " <span>RXD</span>";
+      $("claimed").innerHTML = Number(state.claimed).toFixed(3) + " <span>RXD</span>";
       $("chip").textContent = shortAddr(state.address);
       const left = remainingClaim();
       const ready = !!state.address && left === 0;
@@ -438,61 +201,35 @@
       $("arc").style.strokeDashoffset = String(CIRC * (ready ? 0 : 1 - progress));
       if (!state.address) $("timer").innerHTML = "CONNECT WALLET";
       else if (left > 0) $("timer").innerHTML = "NEXT CLAIM <b>" + fmt(left) + "</b>";
-      else $("timer").innerHTML = "<b>CLAIM " + CLAIM_AMT + " RXD</b>";
-      $("tagline").classList.toggle("live", !!state.address && !!state.blitzReady);
-    }
-    function renderWallet() {
-      const on = !!state.address;
-      $("connectBtn").disabled = on;
-      $("disconnectBtn").disabled = !on;
-      $("connectBtn").classList.toggle("disabled", on);
-      $("disconnectBtn").classList.toggle("disabled", !on);
-      if (on) $("addrInput").value = "";
-    }
-    function setBtn(btn, mode, text) {
-      btn.className = "btn q-btn" + (mode === "verify" ? " verify" : mode === "claim" ? " claim-now" : mode === "timer" ? " timer" : "");
-      btn.disabled = mode === "verify" || mode === "timer";
-      btn.textContent = text;
-      btn.dataset.mode = mode;
+      else $("timer").innerHTML = "<b>CLAIM 0.001 RXD</b>";
     }
     function renderQuests() {
-      const showWave2 = wave1Done();
       document.querySelectorAll(".task-card[data-quest]").forEach(function(el) {
-        const name = el.dataset.quest;
-        const btn = el.querySelector(".q-btn");
-        const wave2 = el.classList.contains("wave2");
-        if (el.classList.contains("wave1")) el.classList.toggle("hidden", questDone(name));
-        if (wave2) el.classList.toggle("hidden", !showWave2);
-        const pending = state.pending[name];
-        const q = state.quests[name] || {};
-        const left = wave2 ? wave2Left(name) : 0;
-        const freshStart = (q.started || 0) > (q.completed || 0);
-        const wait = wave2 ? VERIFY2_MS : VERIFY_MS;
-        const readyAt = freshStart ? (q.started + wait) : 0;
-        if (freshStart && Date.now() < readyAt) setBtn(btn, "verify", "Verifying");
-        else if (freshStart && Date.now() >= readyAt) setBtn(btn, "claim", "CLAIM");
-        else if (wave2 && left > 0) setBtn(btn, "timer", fmt(left));
-        else setBtn(btn, "go", "Go");
+        const left = remainingQuest(el.dataset.quest);
+        el.classList.toggle("hidden", left > 0);
+        const r = el.querySelector(".r");
+        if (r) r.textContent = "+" + QUEST_AMT + " RXD";
       });
-      $("refCode").value = referralLink();
-      $("refStats").textContent = "Referrals: " + (state.referrals || 0) + " · Earn +500 RXD when a new player opens your link, connects, and mines.";
     }
     document.querySelectorAll(".nav button").forEach(function(btn) {
-      btn.onclick = function() { showTab(btn.dataset.tab); };
+      btn.onclick = function() {
+        document.querySelectorAll(".nav button").forEach(function(b){ b.classList.remove("on"); });
+        btn.classList.add("on");
+        document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("on"); });
+        $("screen-" + btn.dataset.tab).classList.add("on");
+      };
     });
     $("connectBtn").onclick = async function() {
       const errEl = $("addrError");
       errEl.style.display = "none";
-      const v = $("addrInput").value.replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\s+/g, "").trim();
-      $("addrInput").value = v;
+      const v = $("addrInput").value.trim();
       if (!isPhotonicAddress(v)) {
         errEl.style.display = "block";
         errEl.textContent = "That is not a Photonic RXD address. Open photonic-wallet.com, tap Receive, and paste that address only.";
         return;
       }
       try {
-        applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({}, identity(), { address: v })) }));
-        localStorage.removeItem("rxd-disconnected");
+        applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({ address: v }, identity())) }));
         renderAll();
         showTab("mine");
       } catch (err) {
@@ -500,66 +237,13 @@
         errEl.textContent = err.message;
       }
     };
-    $("createWalletBtn").onclick = function() {
-      openOut("https://photonic-wallet.com");
-    };
-    $("disconnectBtn").onclick = async function() {
-      try { applyServer(await api("/disconnect", { method: "POST", body: JSON.stringify(identity()) })); } catch (e) {}
-      state.address = "";
-      localStorage.removeItem("rxd-addr");
-      localStorage.setItem("rxd-disconnected", "1");
-      save();
-      $("addrInput").value = "";
-      renderAll();
-    };
-    $("copyRef").onclick = function() {
-      const link = referralLink();
-      if (!link) return;
-      navigator.clipboard.writeText(link).catch(function(){});
-      $("copyRef").textContent = "Copied";
-      setTimeout(function(){ $("copyRef").textContent = "Copy"; }, 1200);
-    };
-    $("chip").onclick = function() { if (!state.address) showTab("wallet"); };
-    $("timer").onclick = function() { if (!state.address) showTab("wallet"); };
     $("payoutBtn").onclick = function() { return false; };
-    $("boardBtn").onclick = async function() {
-      $("board").classList.add("on");
-      $("boardList").innerHTML = "Loading…";
-      try {
-        const data = await api("/leaderboard");
-        const rows = data.players || [];
-        if (!rows.length) $("boardList").innerHTML = "<div class='note'>No scores yet.</div>";
-        else $("boardList").innerHTML = rows.map(function(p, i) {
-          const tag = p.name || "Player";
-          return "<div class='rowline'><span class='rank'>" + (i + 1) + "</span><span>" + tag + "</span><span>" + Number(p.score || 0).toFixed(2) + "</span></div>";
-        }).join("");
-      } catch (e) { $("boardList").textContent = e.message; }
-    };
-    $("boardClose").onclick = function() { $("board").classList.remove("on"); };
-    async function ensureWallet() {
-      const addr = state.address || localStorage.getItem("rxd-addr") || "";
-      if (!isPhotonicAddress(addr)) return false;
-      state.address = addr;
-      try {
-        applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({}, identity(), { address: addr })) }));
-      } catch (e) {}
-      return !!state.address;
-    }
     $("orb").onclick = async function() {
-      if (!(state.address || localStorage.getItem("rxd-addr"))) { showTab("wallet"); return; }
+      if (!state.address) { document.querySelector('[data-tab="wallet"]').click(); return; }
       if (remainingClaim() > 0) return;
       try {
-        if (!state.address) await ensureWallet();
-        let res;
-        try {
-          res = await api("/claim", { method: "POST", body: JSON.stringify(identity()) });
-        } catch (first) {
-          if (!/wallet/i.test(String(first.message || ""))) throw first;
-          await ensureWallet();
-          res = await api("/claim", { method: "POST", body: JSON.stringify(identity()) });
-        }
+        const res = await api("/claim", { method: "POST", body: JSON.stringify(identity()) });
         applyServer(res.state);
-        AudioBus.claim();
         $("toast").textContent = "+" + CLAIM_AMT + " RXD queued";
         $("toast").classList.add("show");
         setTimeout(function(){ $("toast").classList.remove("show"); }, 1600);
@@ -568,257 +252,28 @@
     };
     document.querySelectorAll(".q-btn").forEach(function(btn) {
       btn.onclick = async function() {
-        if (!state.address) { showTab("wallet"); return; }
-        const card = btn.closest("[data-quest]");
-        const quest = card.dataset.quest;
-        const mode = btn.dataset.mode || "go";
-        if (mode === "verify" || mode === "timer") return;
-        if (mode === "claim") {
-          AudioBus.claim();
-          try {
-            const res = await api("/quest/" + quest, { method: "POST", body: JSON.stringify(identity()) });
-            applyServer(res.state);
-            delete state.pending[quest];
-            save();
-            renderAll();
-            if (res.pulseReady) startCinematic("wave2");
-          } catch (err) { alert(err.message); }
-          return;
-        }
-        openOut(btn.dataset.url);
-        try {
-          const wait = card.classList.contains("wave2") ? VERIFY2_MS : VERIFY_MS;
-          await api("/quest/" + quest + "/start", { method: "POST", body: JSON.stringify(identity()) });
-          state.pending[quest] = Date.now() + wait;
-          if (!state.quests[quest]) state.quests[quest] = { completed: 0, started: 0 };
-          state.quests[quest].started = Date.now();
-          state.quests[quest] = state.quests[quest] || {};
-          state.quests[quest].started = Date.now();
-          save();
-          setBtn(btn, "verify", "Verifying");
-          renderQuests();
-        } catch (err) { alert(err.message); }
+        if (!state.address) { document.querySelector('[data-tab="wallet"]').click(); return; }
+        window.open(btn.dataset.url, "_blank", "noopener");
+        if (!confirm("Mark this task complete and queue +" + QUEST_AMT + " RXD?")) return;
+        const quest = btn.closest("[data-quest]").dataset.quest;
+        try { applyServer((await api("/quest/" + quest, { method: "POST", body: JSON.stringify(identity()) })).state); renderAll(); }
+        catch (err) { alert(err.message); }
       };
     });
-    function renderAll() { renderMine(); renderQuests(); renderWallet(); }
-    let stormTimer = null;
-    let stormHits = 0;
-    let stormKind = "streak";
-    function spawnBolt() {
-      const storm = $("storm");
-      const el = document.createElement("div");
-      el.className = "bolt";
-      el.style.left = (8 + Math.random() * 84) + "vw";
-      el.style.animationDuration = (1.1 + Math.random() * 1.2) + "s";
-      el.innerHTML = '<svg viewBox="0 0 24 40" width="28" height="44"><path fill="#7af0f0" d="M13 0L3 22h8l-3 18 14-24h-8L21 0z"/></svg>';
-      function explodeBolt(target) {
-        const x = target.style.left;
-        const y = target.getBoundingClientRect().top + "px";
-        target.classList.add("boom");
-        target.innerHTML = "";
-        const flash = document.createElement("div");
-        flash.className = "boom-flash";
-        target.appendChild(flash);
-        for (let i = 0; i < 8; i++) {
-          const shard = document.createElement("div");
-          shard.className = "boom-shard";
-          shard.style.setProperty("--r", (i * 45) + "deg");
-          target.appendChild(shard);
-        }
-        target.style.top = y;
-        target.style.left = x;
-        target.style.animation = "none";
-        setTimeout(function(){ target.remove(); }, 300);
-      }
-      function grab(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (el.dataset.hit) return;
-        el.dataset.hit = "1";
-        stormHits += 1;
-        AudioBus.zap();
-        explodeBolt(el);
-      }
-      el.onclick = grab;
-      el.ontouchstart = grab;
-      storm.appendChild(el);
-      setTimeout(function(){ el.remove(); }, 2400);
-    }
-    async function endStorm() {
-      clearInterval(stormTimer);
-      stormTimer = null;
-      const hits = stormHits;
-      $("storm").classList.remove("intro");
-      $("storm").classList.add("on");
-      const before = Number(state.claimed || 0);
-      let earned = Number((hits * 0.01).toFixed(2));
-      try {
-        const res = await api("/blitz", { method: "POST", body: JSON.stringify(Object.assign({ hits: hits, kind: stormKind }, identity())) });
-        applyServer(res.state);
-        if (res.amountRxd != null) earned = Number(res.amountRxd);
-      } catch (e) {}
-      state.claimed = Math.max(Number(state.claimed || 0), before + earned);
-      save();
-      $("storm").innerHTML = "<div class='storm-result'><div class='big'>" + hits + "</div><div class='sub'>LIGHTNING TAPPED</div><div class='sub'>+" + earned + " RXD</div></div>";
-      stormHits = 0;
-      renderAll();
-      setTimeout(function() {
-        $("storm").classList.remove("on");
-        $("storm").innerHTML = "";
-        showTab("mine");
-      }, 2200);
-    }
-    function startGame() {
-      if (stormTimer) return;
-      stormHits = 0;
-      $("storm").classList.remove("intro");
-      $("storm").classList.add("on");
-      stormTimer = setInterval(spawnBolt, 220);
-      setTimeout(endStorm, 15000);
-    }
-    function startCinematic(kind) {
-      if (stormTimer) return;
-      stormKind = kind || "streak";
-      $("storm").innerHTML = "";
-      $("storm").classList.add("on", "intro");
-      AudioBus.thunder();
-      setTimeout(function() { AudioBus.thunder(); }, 400);
-      const intro = setInterval(function() { spawnBolt(); spawnBolt(); }, 180);
-      setTimeout(function() {
-        clearInterval(intro);
-        startGame();
-      }, 2000);
-    }
-    $("tagline").onclick = function() {
-      if (!state.address || !state.blitzReady) return;
-      startCinematic("streak");
-    };
-    let secretTaps = [];
-    let surgeTimer = null;
-    let surgeHits = 0;
-    let surgeCombo = 0;
-    function spawnCore() {
-      const storm = $("storm");
-      const el = document.createElement("div");
-      el.className = "core";
-      el.textContent = "RXD";
-      const side = Math.floor(Math.random() * 4);
-      const x = side === 0 || side === 2 ? Math.random() * 80 + 10 : (side === 1 ? 92 : 4);
-      const y = side === 1 || side === 3 ? Math.random() * 70 + 15 : (side === 0 ? 4 : 88);
-      el.style.left = x + "vw";
-      el.style.top = y + "vh";
-      const life = 700 + Math.random() * 500;
-      const grab = function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (el.dataset.hit) return;
-        el.dataset.hit = "1";
-        surgeHits += 1;
-        surgeCombo += 1;
-        AudioBus.claim();
-        el.textContent = "";
-        el.style.animation = "none";
-        el.style.background = "transparent";
-        el.style.boxShadow = "none";
-        const flash = document.createElement("div");
-        flash.className = "boom-flash";
-        el.appendChild(flash);
-        for (let i = 0; i < 8; i++) {
-          const shard = document.createElement("div");
-          shard.className = "boom-shard";
-          shard.style.setProperty("--r", (i * 45) + "deg");
-          el.appendChild(shard);
-        }
-        setTimeout(function(){ el.remove(); }, 300);
-      };
-      el.onclick = grab;
-      el.ontouchstart = grab;
-      storm.appendChild(el);
-      setTimeout(function() { if (el.parentNode) { el.remove(); surgeCombo = 0; } }, life);
-    }
-    async function endSurge() {
-      clearInterval(surgeTimer);
-      surgeTimer = null;
-      const hits = surgeHits;
-      const before = Number(state.claimed || 0);
-      let earned = Number((hits * 0.02).toFixed(2));
-      try {
-        const res = await api("/surge", { method: "POST", body: JSON.stringify(Object.assign({ hits: hits }, identity())) });
-        applyServer(res.state);
-        if (res.amountRxd != null) earned = Number(res.amountRxd);
-      } catch (e) {}
-      state.claimed = Math.max(Number(state.claimed || 0), before + earned);
-      save();
-      $("storm").innerHTML = "<div class='storm-result'><div class='big'>" + hits + "</div><div class='sub'>CORES CAUGHT</div><div class='sub'>+" + earned + " RXD</div></div>";
-      surgeHits = 0;
-      renderAll();
-      setTimeout(function() {
-        $("storm").classList.remove("on");
-        $("storm").innerHTML = "";
-        showTab("mine");
-      }, 2200);
-    }
-    function startSurge() {
-      if (stormTimer || surgeTimer) return;
-      if (!state.address) { showTab("wallet"); return; }
-      surgeHits = 0;
-      surgeCombo = 0;
-      $("storm").innerHTML = "";
-      $("storm").classList.add("on");
-      AudioBus.thunder();
-      surgeTimer = setInterval(spawnCore, 280);
-      setTimeout(endSurge, 12000);
-    }
-    $("chainTitle").onclick = function() {
-      if (!state.address) return;
-      const now = Date.now();
-      secretTaps = secretTaps.filter(function(t) { return now - t < 4000; });
-      secretTaps.push(now);
-      if (secretTaps.length >= 5) {
-        secretTaps = [];
-        startSurge();
-      }
-    };
+    function renderAll() { renderMine(); renderQuests(); }
     (async function() {
       try {
         const cfg = await api("/config");
-        CLAIM_MS = cfg.claimMs; WAVE1_MS = cfg.wave1Ms || WAVE1_MS; WAVE2_MS = cfg.wave2Ms || WAVE2_MS; VERIFY_MS = cfg.verifyMs || VERIFY_MS;
-        VERIFY2_MS = cfg.verify2Ms || VERIFY2_MS;
-        CLAIM_AMT = cfg.claimRxd; QUEST1 = cfg.quest1Rxd || QUEST1; QUEST2 = cfg.quest2Rxd || QUEST2;
-        botUsername = cfg.botUsername || "";
-        miniAppName = cfg.miniAppName || "app";
+        CLAIM_MS = cfg.claimMs; QUEST_MS = cfg.questMs || QUEST_MS; CLAIM_AMT = cfg.claimRxd; QUEST_AMT = cfg.questRxd;
         document.querySelectorAll(".q-btn").forEach(function(btn) {
           const q = btn.closest("[data-quest]").dataset.quest;
           if (cfg.quests && cfg.quests[q]) btn.dataset.url = cfg.quests[q];
         });
-        try {
-          const me = await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "", savedScore: String(state.claimed || 0), address: state.address || localStorage.getItem("rxd-addr") || "" }));
-          applyServer(me);
-        } catch (miss) {
-          if (localStorage.getItem("rxd-disconnected") === "1") {
-            state.address = "";
-          } else if (state.address && isPhotonicAddress(state.address)) {
-            applyServer(await api("/connect", { method: "POST", body: JSON.stringify(Object.assign({}, identity(), { address: state.address })) }));
-          }
-        }
+        applyServer(await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "" })));
       } catch (e) {}
       renderAll();
     })();
-    async function pullState() {
-      try {
-        const me = await api("/me?" + new URLSearchParams({ clientId: clientId, telegramId: telegramId || "", savedScore: String(state.claimed || 0), address: state.address || localStorage.getItem("rxd-addr") || "" }));
-        applyServer(me);
-        renderAll();
-      } catch (e) {
-        if (localStorage.getItem("rxd-disconnected") === "1") {
-          state.address = "";
-          renderAll();
-        }
-      }
-    }
-    setInterval(pullState, 8000);
-    document.addEventListener("visibilitychange", function() { if (!document.hidden) pullState(); });
-    setInterval(renderAll, 250);
+    setInterval(renderAll, 1000);
   </script>
 </body>
 </html>
