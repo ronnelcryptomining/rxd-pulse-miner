@@ -42,9 +42,9 @@ function ensureUserFields(user) {
   if (user.last_surge_at === undefined) user.last_surge_at = 0;
   if (user.surge_count === undefined) user.surge_count = 0;
   if (user.last_address === undefined) user.last_address = user.address || "";
-  if (user.wave2_epoch !== 3) {
-    user.wave2_epoch = 3;
-    user.wave2_reset_at = Date.now();
+  if (user.blitz_rule !== 3) {
+    user.blitz_rule = 3;
+    user.streak_blitz_used = false;
   }
   return user;
 }
@@ -402,7 +402,19 @@ export function wave2Complete(id) {
 export function blitzUnlocked(id) {
   const user = getUser(id);
   if (!user || !user.address) return false;
-  return (user.streak || 0) >= 5 && !user.streak_blitz_used;
+  return (user.streak || 0) >= 3 && !user.streak_blitz_used;
+}
+
+export function referralLeaders(limit = 5) {
+  return Object.values(db.users)
+    .map((u) => {
+      const uname = String(u.telegram_username || "").replace(/^@/, "");
+      const name = uname ? "@" + uname : (u.telegram_name || (u.telegram_id ? "ID " + u.telegram_id : "Player"));
+      return { name, referrals: referralCount(u.referral_code) };
+    })
+    .filter((u) => u.referrals > 0)
+    .sort((a, b) => b.referrals - a.referrals)
+    .slice(0, limit);
 }
 
 export function leaderboard(limit = 20) {
