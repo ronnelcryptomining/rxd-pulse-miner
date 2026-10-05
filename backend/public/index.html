@@ -36,7 +36,7 @@
     .ref-board { width: 100%; max-width: 280px; margin-top: 8px; text-align: center; }
     .ref-board h4 { color: #f6d36b; font-size: 11px; letter-spacing: .16em; margin-bottom: 4px; }
     .ref-board div { color: #d7e7ea; font-size: 12px; line-height: 1.45; }
-    .tagline { display: block; width: 100%; text-align: center; color: var(--teal); font-size: 18px; letter-spacing: .14em; font-weight: 900; margin: 2px 0 4px; pointer-events: none; opacity: .85; }
+    .tagline { display: block; width: 100%; text-align: center; color: var(--teal); font-size: 16px; letter-spacing: .14em; font-weight: 900; margin: 2px 0 4px; pointer-events: none; opacity: .85; }
     .tagline.live { pointer-events: auto; cursor: pointer; opacity: 1; animation: glow 1.2s ease-in-out infinite; text-shadow: 0 0 12px rgba(62,200,200,.8); }
     .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     .orb-wrap { position: relative; width: 236px; height: 236px; }
@@ -161,7 +161,6 @@
         <div class="claim-label" id="timer" style="cursor:pointer">CONNECT WALLET</div>
         <div class="bolt-text" id="chainTitle">RADIANT BLOCKCHAIN</div>
         <div class="payout-count" id="payoutCount">PAYOUT IN --</div>
-        <div class="ref-board" id="refBoard"><h4>TOP REFERRALS</h4><div id="refBoardList">—</div></div>
         <div class="toast" id="toast">+10 RXD queued</div>
       </div>
     </section>
@@ -201,7 +200,7 @@
         <div class="wallet-bottom">
           <div class="ath-static">ALL TIME HIGH $0.00918</div>
           <button class="btn ghost wide" id="boardBtn">LEADERBOARD</button>
-          <button class="btn wide disabled" id="payoutBtn" disabled title="Coming later">CLAIM RXD TOKENS</button>
+          <button class="btn ghost wide" id="payoutBtn">TOP REFERRALS</button>
         </div>
       </div>
     </section>
@@ -220,7 +219,7 @@
   <script>
     let CLAIM_MS = 60 * 60 * 1000;
     let WAVE1_MS = 24 * 60 * 60 * 1000;
-    let WAVE2_MS = 4 * 60 * 60 * 1000;
+    let WAVE2_MS = 3 * 60 * 60 * 1000;
     let VERIFY_MS = 40 * 1000;
     let VERIFY2_MS = 50 * 1000;
     let CLAIM_AMT = 10;
@@ -527,7 +526,19 @@
     };
     $("chip").onclick = function() { if (!state.address) showTab("wallet"); };
     $("timer").onclick = function() { if (!state.address) showTab("wallet"); };
-    $("payoutBtn").onclick = function() { return false; };
+    $("payoutBtn").onclick = async function() {
+      $("board").classList.add("on");
+      $("board").querySelector("h3").textContent = "TOP 20 REFERRALS";
+      $("boardList").innerHTML = "Loading…";
+      try {
+        const data = await api("/leaderboard");
+        const rows = data.referrals || [];
+        if (!rows.length) $("boardList").innerHTML = "<div class='note'>No referrals yet.</div>";
+        else $("boardList").innerHTML = rows.map(function(p, i) {
+          return "<div class='rowline'><span class='rank'>" + (i + 1) + "</span><span>" + (p.name || "Player") + "</span><span>" + p.referrals + "</span></div>";
+        }).join("");
+      } catch (e) { $("boardList").textContent = e.message; }
+    };
     async function loadRefBoard() {
       try {
         const data = await api("/leaderboard");
@@ -849,8 +860,6 @@
       }
     }
     setInterval(pullState, 8000);
-    loadRefBoard();
-    setInterval(loadRefBoard, 30000);
     document.addEventListener("visibilitychange", function() { if (!document.hidden) pullState(); });
     setInterval(renderAll, 250);
   </script>
