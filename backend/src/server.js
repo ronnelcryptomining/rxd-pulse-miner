@@ -21,6 +21,7 @@ import {
   markBlitz,
   blitzUnlocked,
   leaderboard,
+  referralLeaders,
   resetAll,
   wave1Complete,
   wave2Complete,
@@ -54,10 +55,10 @@ app.get("/", (_req, res) => {
 const CLAIM_MS = Number(process.env.CLAIM_COOLDOWN_MS || 60 * 60 * 1000);
 const CLAIM_RXD = Number(process.env.CLAIM_RXD || 10);
 const QUEST1_RXD = Number(process.env.QUEST1_RXD || 50);
-const QUEST2_RXD = Number(process.env.QUEST2_RXD || 25);
+const QUEST2_RXD = Number(process.env.QUEST2_RXD || 10);
 const REF_RXD = Number(process.env.REF_RXD || 500);
 const WAVE1_MS = Number(process.env.WAVE1_COOLDOWN_MS || 24 * 60 * 60 * 1000);
-const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 6 * 60 * 60 * 1000);
+const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 4 * 60 * 60 * 1000);
 const VERIFY_MS = Number(process.env.QUEST_VERIFY_MS || 40 * 1000);
 const VERIFY2_MS = Number(process.env.QUEST2_VERIFY_MS || 50 * 1000);
 const WAVE1 = ["discord", "telegram", "x", "youtube", "facebook"];
@@ -70,8 +71,8 @@ const QUESTS = {
   facebook: process.env.FACEBOOK_URL || "https://www.facebook.com/share/1DsG5GnaJF/?mibextid=wwXIfr",
   visit_yt: process.env.VISIT_YT_URL || "https://youtu.be/oPNhgJrurh8?si=e5z_aDMqo4VLHv7R",
   visit_yt2: process.env.VISIT_YT2_URL || "https://youtu.be/cEmHmYxpVW8?si=K3827AWLqAhjyTp9",
-  visit_x: process.env.VISIT_X_URL || "https://x.com/rxdpulseminer/status/2103568263171219761?s=46",
-  visit_fb: process.env.VISIT_FB_URL || "https://x.com/rxdpulseminer/status/2104288447251009931?s=46",
+  visit_x: process.env.VISIT_X_URL || "https://youtu.be/V2CXj8cHaBc?si=Lh3w_rJ1DSBnTbp6",
+  visit_fb: process.env.VISIT_FB_URL || "https://x.com/rxdpulseminer/status/2103568263171219761?s=46",
   visit_web: process.env.VISIT_WEB_URL || "https://radiantblockchain.org/",
 };
 const BOT_USERNAME = (process.env.BOT_USERNAME || "").replace(/^@/, "");
@@ -303,7 +304,7 @@ app.post("/api/blitz", (req, res) => {
     const allowed = kind === "wave2" ? wave2Complete(id) : blitzUnlocked(id);
     if (!BLITZ_TEST && !allowed) return res.status(403).json({ error: "Locked" });
     const hits = Math.max(0, Math.min(80, Number(req.body.hits || 0)));
-    const amountRxd = Number((hits * 0.01).toFixed(2));
+    const amountRxd = hits * 1;
     markBlitz(id, kind);
     if (amountRxd > 0) {
       enqueuePayout({
@@ -419,7 +420,7 @@ app.get("/api/admin/stats", requireAdmin, async (_req, res) => {
 });
 
 app.get("/api/leaderboard", (_req, res) => {
-  res.json({ players: leaderboard(20) });
+  res.json({ players: leaderboard(20), referrals: referralLeaders(5) });
 });
 
 app.post("/api/dev/reset", (_req, res) => {
