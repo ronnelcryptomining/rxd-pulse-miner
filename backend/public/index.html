@@ -33,7 +33,10 @@
     .bal .amt { font-size: 34px; font-weight: 800; letter-spacing: -1px; }
     .bal .amt span { color: var(--teal); font-size: 16px; margin-left: 4px; }
     .payout-count { text-align: center; color: #f6d36b; font-size: 13px; font-weight: 800; letter-spacing: .08em; margin: 8px 0 4px; }
-    .tagline { display: block; width: 100%; text-align: center; color: var(--teal); font-size: 12px; letter-spacing: .18em; font-weight: 800; margin: 6px 0 8px; pointer-events: none; opacity: .72; }
+    .ref-board { width: 100%; max-width: 280px; margin-top: 8px; text-align: center; }
+    .ref-board h4 { color: #f6d36b; font-size: 11px; letter-spacing: .16em; margin-bottom: 4px; }
+    .ref-board div { color: #d7e7ea; font-size: 12px; line-height: 1.45; }
+    .tagline { display: block; width: 100%; text-align: center; color: var(--teal); font-size: 18px; letter-spacing: .14em; font-weight: 900; margin: 2px 0 4px; pointer-events: none; opacity: .85; }
     .tagline.live { pointer-events: auto; cursor: pointer; opacity: 1; animation: glow 1.2s ease-in-out infinite; text-shadow: 0 0 12px rgba(62,200,200,.8); }
     .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     .orb-wrap { position: relative; width: 236px; height: 236px; }
@@ -140,9 +143,9 @@
     <div class="bal">
       <div class="amt" id="claimed">0 <span>RXD</span></div>
     </div>
+    <div class="tagline" id="tagline">THE FUTURE IS RADIANT</div>
     <section class="screen on" id="screen-mine">
       <div class="stage">
-        <div class="tagline" id="tagline">THE FUTURE IS RADIANT</div>
         <div class="orb-wrap">
           <svg class="ring" viewBox="0 0 236 236">
             <circle cx="118" cy="118" r="108" fill="none" stroke="#163036" stroke-width="8"/>
@@ -158,6 +161,7 @@
         <div class="claim-label" id="timer" style="cursor:pointer">CONNECT WALLET</div>
         <div class="bolt-text" id="chainTitle">RADIANT BLOCKCHAIN</div>
         <div class="payout-count" id="payoutCount">PAYOUT IN --</div>
+        <div class="ref-board" id="refBoard"><h4>TOP REFERRALS</h4><div id="refBoardList">—</div></div>
         <div class="toast" id="toast">+10 RXD queued</div>
       </div>
     </section>
@@ -168,11 +172,11 @@
         <div class="task-card wave1" data-quest="youtube" data-reward="50"><div class="ico">Y</div><div class="meta"><div class="t">Subscribe on YouTube</div><div class="r">+50 RXD</div></div><button class="btn q-btn" data-url="https://youtube.com/@rxdpulseminer?si=bNyjQ3OXjbaZlGuU">Go</button></div>
         <div class="task-card wave1" data-quest="facebook" data-reward="50"><div class="ico">F</div><div class="meta"><div class="t">Follow RXD Pulse on Facebook</div><div class="r">+50 RXD</div></div><button class="btn q-btn" data-url="https://www.facebook.com/share/1DsG5GnaJF/?mibextid=wwXIfr">Go</button></div>
         <div class="task-card wave1" data-quest="discord" data-reward="50"><div class="ico">D</div><div class="meta"><div class="t">Join Radiant Blockchain on Discord</div><div class="r">+50 RXD</div></div><button class="btn q-btn" data-url="https://discord.gg/radiantblockchain">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_yt" data-reward="25"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #1</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/oPNhgJrurh8?si=e5z_aDMqo4VLHv7R">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_yt2" data-reward="25"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #2</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/cEmHmYxpVW8?si=K3827AWLqAhjyTp9">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_x" data-reward="25"><div class="ico">X</div><div class="meta"><div class="t">Like & Share on X #1</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer/status/2103568263171219761?s=46">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_fb" data-reward="25"><div class="ico">X</div><div class="meta"><div class="t">Like & Share on X #2</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer/status/2104288447251009931?s=46">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_web" data-reward="25"><div class="ico">R</div><div class="meta"><div class="t">Visit Radiant Website</div><div class="r">+25 RXD</div></div><button class="btn q-btn" data-url="https://radiantblockchain.org/">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_yt" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #1</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/oPNhgJrurh8?si=e5z_aDMqo4VLHv7R">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_yt2" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #2</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/cEmHmYxpVW8?si=K3827AWLqAhjyTp9">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_x" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #3</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/V2CXj8cHaBc?si=Lh3w_rJ1DSBnTbp6">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_fb" data-reward="10"><div class="ico">X</div><div class="meta"><div class="t">Like & Share on X #1</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer/status/2103568263171219761?s=46">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_web" data-reward="10"><div class="ico">R</div><div class="meta"><div class="t">Visit Radiant Website</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://radiantblockchain.org/">Go</button></div>
       </div>
     </section>
     <section class="screen" id="screen-wallet">
@@ -216,12 +220,12 @@
   <script>
     let CLAIM_MS = 60 * 60 * 1000;
     let WAVE1_MS = 24 * 60 * 60 * 1000;
-    let WAVE2_MS = 6 * 60 * 60 * 1000;
+    let WAVE2_MS = 4 * 60 * 60 * 1000;
     let VERIFY_MS = 40 * 1000;
     let VERIFY2_MS = 50 * 1000;
     let CLAIM_AMT = 10;
     let QUEST1 = 50;
-    let QUEST2 = 25;
+    let QUEST2 = 10;
     const WAVE1 = ["discord", "telegram", "x", "youtube", "facebook"];
     const KEY = "rxd-pulse-v16";
     const API = localStorage.getItem("rxd-api") || "/api";
@@ -524,6 +528,17 @@
     $("chip").onclick = function() { if (!state.address) showTab("wallet"); };
     $("timer").onclick = function() { if (!state.address) showTab("wallet"); };
     $("payoutBtn").onclick = function() { return false; };
+    async function loadRefBoard() {
+      try {
+        const data = await api("/leaderboard");
+        const rows = (data.referrals || []).slice(0, 5);
+        const el = $("refBoardList");
+        if (!el) return;
+        el.innerHTML = rows.length ? rows.map(function(p, i) {
+          return (i + 1) + ". " + (p.name || "Player") + " · " + p.referrals;
+        }).join("<br>") : "No referrals yet";
+      } catch (e) {}
+    }
     $("boardBtn").onclick = async function() {
       $("board").classList.add("on");
       $("boardList").innerHTML = "Loading…";
@@ -653,7 +668,7 @@
       $("storm").classList.remove("intro");
       $("storm").classList.add("on");
       const before = Number(state.claimed || 0);
-      let earned = Number((hits * 0.01).toFixed(2));
+      let earned = hits * 1;
       try {
         const res = await api("/blitz", { method: "POST", body: JSON.stringify(Object.assign({ hits: hits, kind: stormKind }, identity())) });
         applyServer(res.state);
@@ -834,6 +849,8 @@
       }
     }
     setInterval(pullState, 8000);
+    loadRefBoard();
+    setInterval(loadRefBoard, 30000);
     document.addEventListener("visibilitychange", function() { if (!document.hidden) pullState(); });
     setInterval(renderAll, 250);
   </script>
