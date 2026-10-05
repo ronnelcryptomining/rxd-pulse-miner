@@ -58,7 +58,7 @@ const QUEST1_RXD = Number(process.env.QUEST1_RXD || 50);
 const QUEST2_RXD = Number(process.env.QUEST2_RXD || 10);
 const REF_RXD = Number(process.env.REF_RXD || 500);
 const WAVE1_MS = Number(process.env.WAVE1_COOLDOWN_MS || 24 * 60 * 60 * 1000);
-const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 4 * 60 * 60 * 1000);
+const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 3 * 60 * 60 * 1000);
 const VERIFY_MS = Number(process.env.QUEST_VERIFY_MS || 40 * 1000);
 const VERIFY2_MS = Number(process.env.QUEST2_VERIFY_MS || 50 * 1000);
 const WAVE1 = ["discord", "telegram", "x", "youtube", "facebook"];
@@ -420,7 +420,7 @@ app.get("/api/admin/stats", requireAdmin, async (_req, res) => {
 });
 
 app.get("/api/leaderboard", (_req, res) => {
-  res.json({ players: leaderboard(20), referrals: referralLeaders(5) });
+  res.json({ players: leaderboard(20), referrals: referralLeaders(20) });
 });
 
 app.post("/api/dev/reset", (_req, res) => {
