@@ -378,7 +378,7 @@ export function maybePayReferrer(user) {
   return referrer;
 }
 
-const WAVE2_NAMES = ["visit_yt", "visit_yt2", "visit_x", "visit_yt4", "visit_yt5", "visit_web", "visit_fb"];
+const WAVE2_NAMES = ["visit_yt", "visit_yt2", "visit_x", "visit_yt4", "visit_yt5", "visit_fb"];
 
 export function wave1Complete(id) {
   const user = getUser(id);

@@ -62,7 +62,7 @@ const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 3 * 60 * 60 * 1000);
 const VERIFY_MS = Number(process.env.QUEST_VERIFY_MS || 40 * 1000);
 const VERIFY2_MS = Number(process.env.QUEST2_VERIFY_MS || 50 * 1000);
 const WAVE1 = ["discord", "telegram", "x", "youtube", "facebook"];
-const WAVE2 = ["visit_yt", "visit_yt2", "visit_x", "visit_yt4", "visit_yt5", "visit_web", "visit_fb"];
+const WAVE2 = ["visit_yt", "visit_yt2", "visit_x", "visit_yt4", "visit_yt5", "visit_fb"];
 const QUESTS = {
   discord: process.env.DISCORD_URL || "https://discord.gg/radiantblockchain",
   telegram: process.env.TELEGRAM_CHANNEL || "https://t.me/rxdpulseminer",
@@ -74,7 +74,6 @@ const QUESTS = {
   visit_x: process.env.VISIT_X_URL || "https://youtu.be/V2CXj8cHaBc?si=Lh3w_rJ1DSBnTbp6",
   visit_yt4: process.env.VISIT_YT4_URL || "https://youtu.be/23rDUw7l2So?si=D0-cVB36WR6BMMll",
   visit_yt5: process.env.VISIT_YT5_URL || "https://youtu.be/H2S1okE2e-o?si=L9lDUQL9_Wzm-r6W",
-  visit_web: process.env.VISIT_WEB_URL || "https://radiantblockchain.org/",
   visit_fb: process.env.VISIT_FB_URL || "https://x.com/rxdpulseminer/status/2103568263171219761?s=46",
 };
 const BOT_USERNAME = (process.env.BOT_USERNAME || "").replace(/^@/, "");
