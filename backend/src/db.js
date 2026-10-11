@@ -42,33 +42,46 @@ function ensureUserFields(user) {
   if (user.last_surge_at === undefined) user.last_surge_at = 0;
   if (user.surge_count === undefined) user.surge_count = 0;
   if (user.last_address === undefined) user.last_address = user.address || "";
-  if (user.blitz_rule !== 3) {
-    user.blitz_rule = 3;
-    user.streak_blitz_used = false;
-  }
+  if (user.surge_today === undefined) user.surge_today = 0;
+  if (user.surge_day === undefined) user.surge_day = "";
+  if (user.streak_glow_ready === undefined) user.streak_glow_ready = false;
+  if (user.wave1_gate === undefined) user.wave1_gate = 0;
   return user;
 }
 
 function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 function yesterdayKey() {
-  return new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(Date.now() - 86400000));
 }
 
 export function touchStreak(id) {
   const user = getUser(id);
   if (!user) return null;
   const today = todayKey();
-  if (user.last_active_day === today) return user;
-  if (user.last_active_day === yesterdayKey()) user.streak = (user.streak || 0) + 1;
-  else {
-    user.streak = 1;
-    user.streak_blitz_used = false;
+  if (user.last_active_day !== today) {
+    if (user.last_active_day === yesterdayKey()) user.streak = (user.streak || 0) + 1;
+    else if (!user.streak_glow_ready) user.streak = 1;
+    user.last_active_day = today;
   }
-  user.last_active_day = today;
-  if (user.streak === 3) user.wave1_reset_at = Date.now();
+  if ((user.streak || 0) >= 3) user.streak_glow_ready = true;
+  const gate = Math.floor((user.streak || 0) / 3) * 3;
+  if (gate >= 3 && (user.wave1_gate || 0) < gate) {
+    user.wave1_gate = gate;
+    user.wave1_reset_at = Date.now();
+  }
   save(db);
   return user;
 }
@@ -76,8 +89,14 @@ export function touchStreak(id) {
 export function markSurge(id) {
   const user = getUser(id);
   if (!user) return null;
-  user.last_surge_at = Date.now();
+  const today = todayKey();
+  if (user.surge_day !== today) {
+    user.surge_day = today;
+    user.surge_today = 0;
+  }
+  user.surge_today = (user.surge_today || 0) + 1;
   user.surge_count = (user.surge_count || 0) + 1;
+  user.last_surge_at = Date.now();
   save(db);
   return user;
 }
@@ -85,7 +104,15 @@ export function markSurge(id) {
 export function surgeReady(id) {
   const user = getUser(id);
   if (!user || !user.address) return false;
-  return Date.now() - (user.last_surge_at || 0) >= 6 * 60 * 60 * 1000;
+  const used = user.surge_day === todayKey() ? (user.surge_today || 0) : 0;
+  return used < 10;
+}
+
+export function surgeLeft(id) {
+  const user = getUser(id);
+  if (!user) return 0;
+  const used = user.surge_day === todayKey() ? (user.surge_today || 0) : 0;
+  return Math.max(0, 10 - used);
 }
 
 export function markBlitz(id, kind) {
@@ -93,7 +120,13 @@ export function markBlitz(id, kind) {
   if (!user) return null;
   user.last_blitz_day = todayKey();
   user.blitz_count = (user.blitz_count || 0) + 1;
-  if (kind === "streak") user.streak_blitz_used = true;
+  if (kind === "streak") {
+    user.streak_glow_ready = false;
+    user.streak_blitz_used = true;
+    user.streak = 0;
+    user.wave1_gate = 0;
+    user.last_active_day = todayKey();
+  }
   if (kind === "wave2") user.wave2_reset_at = Date.now();
   save(db);
   return user;
@@ -402,7 +435,7 @@ export function wave2Complete(id) {
 export function blitzUnlocked(id) {
   const user = getUser(id);
   if (!user || !user.address) return false;
-  return (user.streak || 0) >= 3 && !user.streak_blitz_used;
+  return !!user.address && !!user.streak_glow_ready;
 }
 
 export function referralLeaders(limit = 5) {
@@ -455,6 +488,7 @@ export function userState(id) {
     wave1Done: wave1Complete(id),
     wave2Done: wave2Complete(id),
     blitzReady: blitzUnlocked(id),
+    surgeLeft: surgeLeft(id),
     blitzCount: user.blitz_count || 0,
     payoutEligible: !!user.address
       && claimedTotal(id) >= 1000
