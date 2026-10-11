@@ -174,8 +174,10 @@
         <div class="task-card wave2 hidden" data-quest="visit_yt" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #1</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/oPNhgJrurh8?si=e5z_aDMqo4VLHv7R">Go</button></div>
         <div class="task-card wave2 hidden" data-quest="visit_yt2" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #2</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/cEmHmYxpVW8?si=K3827AWLqAhjyTp9">Go</button></div>
         <div class="task-card wave2 hidden" data-quest="visit_x" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #3</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/V2CXj8cHaBc?si=Lh3w_rJ1DSBnTbp6">Go</button></div>
-        <div class="task-card wave2 hidden" data-quest="visit_fb" data-reward="10"><div class="ico">X</div><div class="meta"><div class="t">Like & Share on X #1</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer/status/2103568263171219761?s=46">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_yt4" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #4</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/23rDUw7l2So?si=D0-cVB36WR6BMMll">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_yt5" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #5</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/H2S1okE2e-o?si=L9lDUQL9_Wzm-r6W">Go</button></div>
         <div class="task-card wave2 hidden" data-quest="visit_web" data-reward="10"><div class="ico">R</div><div class="meta"><div class="t">Visit Radiant Website</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://radiantblockchain.org/">Go</button></div>
+        <div class="task-card wave2 hidden" data-quest="visit_fb" data-reward="10"><div class="ico">X</div><div class="meta"><div class="t">Like & Share on X #1</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer/status/2103568263171219761?s=46">Go</button></div>
       </div>
     </section>
     <section class="screen" id="screen-wallet">
@@ -195,7 +197,7 @@
             <input id="refCode" readonly placeholder="Connect to get your link" />
             <button class="btn ghost" id="copyRef">Copy</button>
           </div>
-          <p class="note" id="refStats">Referrals: 0 · Earn +100 RXD when a new player opens your link, connects, and mines.</p>
+          <p class="note" id="refStats">Referrals: 0 · Earn +750 RXD when a new player opens your link, connects, and mines.</p>
         </div>
         <div class="wallet-bottom">
           <div class="ath-static">ALL TIME HIGH $0.00918</div>
@@ -480,7 +482,7 @@
         else setBtn(btn, "go", "Go");
       });
       $("refCode").value = referralLink();
-      $("refStats").textContent = "Referrals: " + (state.referrals || 0) + " · Earn +500 RXD when a new player opens your link, connects, and mines.";
+      $("refStats").textContent = "Referrals: " + (state.referrals || 0) + " · Earn +750 RXD when a new player opens your link, connects, and mines.";
     }
     document.querySelectorAll(".nav button").forEach(function(btn) {
       btn.onclick = function() { showTab(btn.dataset.tab); };
@@ -609,7 +611,7 @@
             delete state.pending[quest];
             save();
             renderAll();
-            if (res.pulseReady && Number(res.wave2Claimed) === 5) startCinematic("wave2");
+            if (res.pulseReady) startCinematic("wave2");
           } catch (err) { alert(err.message); }
           return;
         }
