@@ -401,6 +401,61 @@ export function referralCount(code) {
   return Object.values(db.users).filter((u) => (u.referred_by || "").toUpperCase() === code.toUpperCase()).length;
 }
 
+export function validReferralCount(code) {
+  if (!code) return 0;
+  return Object.values(db.users).filter((u) =>
+    (u.referred_by || "").toUpperCase() === code.toUpperCase()
+    && !!u.address
+    && (u.mine_count || 0) >= 1
+  ).length;
+}
+
+export function payoutReport() {
+  const addressHits = {};
+  for (const u of Object.values(db.users)) {
+    if (!u.address) continue;
+    addressHits[u.address] = (addressHits[u.address] || 0) + 1;
+  }
+  const rows = Object.values(db.users).map((u) => {
+    const uname = String(u.telegram_username || "").replace(/^@/, "");
+    const name = uname ? "@" + uname : (u.telegram_name || (u.telegram_id ? "ID " + u.telegram_id : "Player"));
+    const score = claimedTotal(u.id);
+    const referrals = referralCount(u.referral_code);
+    const validRefs = validReferralCount(u.referral_code);
+    const duplicate = !!(u.address && addressHits[u.address] > 1);
+    const fails = [];
+    if (!u.address) fails.push("wallet not connected");
+    if (score < 1000) fails.push("score under 1000");
+    if (validRefs < 3) fails.push("under 3 valid referrals");
+    if (!u.telegram_id) fails.push("no telegram id");
+    if (!u.tg_member) fails.push("not in telegram channel");
+    if (duplicate) fails.push("duplicate wallet");
+    const eligible = fails.length === 0;
+    return {
+      name,
+      telegramId: u.telegram_id || "",
+      telegramUsername: uname,
+      address: u.address || "",
+      score,
+      referrals,
+      validReferrals: validRefs,
+      channelMember: !!u.tg_member,
+      duplicate,
+      eligible,
+      pay: eligible ? score : 0,
+      reason: eligible ? "eligible" : fails.join("; "),
+    };
+  }).sort((a, b) => Number(b.eligible) - Number(a.eligible) || b.score - a.score);
+  const eligibleRows = rows.filter((r) => r.eligible);
+  return {
+    generatedAt: new Date().toISOString(),
+    players: rows.length,
+    eligible: eligibleRows.length,
+    totalRxd: eligibleRows.reduce((sum, r) => sum + r.pay, 0),
+    rows,
+  };
+}
+
 export function maybePayReferrer(user) {
   if (!user || user.referral_paid || !user.referred_by) return null;
   if (!user.verified || (user.mine_count || 0) < 1) return null;

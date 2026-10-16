@@ -14,6 +14,7 @@ import {
   enqueuePayout,
   userState,
   adminStats,
+  payoutReport,
   disconnectUser,
   findByRef,
   maybePayReferrer,
@@ -144,7 +145,7 @@ function questReward(name) {
 }
 
 function requireAdmin(req, res, next) {
-  const key = req.headers["x-admin-key"];
+  const key = req.headers["x-admin-key"] || req.query.key || (req.body && req.body.key);
   if (!process.env.ADMIN_KEY || key !== process.env.ADMIN_KEY) {
     return res.status(401).json({ error: "Unauthorized" });
   }
@@ -399,6 +400,33 @@ app.post("/api/quest/:name", async (req, res) => {
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
   }
+});
+
+app.get("/admin", (_req, res) => {
+  const file = path.join(localPublic, "admin.html");
+  if (!fs.existsSync(file)) return res.status(404).send("admin.html missing");
+  res.sendFile(file);
+});
+
+app.get("/api/admin/payouts", requireAdmin, (_req, res) => {
+  res.json(payoutReport());
+});
+
+app.get("/api/admin/payouts.csv", requireAdmin, (_req, res) => {
+  const report = payoutReport();
+  const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = [
+    ["Name", "Telegram ID", "Wallet", "Score", "Referrals", "Valid Referrals", "Channel Member", "Eligible", "Pay RXD", "Reason"].map(esc).join(","),
+    ...report.rows.map((r) => [
+      r.name, r.telegramId, r.address, r.score, r.referrals, r.validReferrals,
+      r.channelMember ? "yes" : "no", r.eligible ? "yes" : "no", r.pay, r.reason,
+    ].map(esc).join(",")),
+    "",
+    esc("TOTAL"), "", "", "", "", "", "", esc(String(report.eligible) + " eligible"), report.totalRxd, "",
+  ];
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", "attachment; filename=rxd-pay-list.csv");
+  res.send(lines.join("\n"));
 });
 
 app.post("/api/admin/reset-season", requireAdmin, (_req, res) => {
