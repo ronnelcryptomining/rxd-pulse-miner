@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RXD Pay List</title>
+  <style>
+    :root { --bg:#071014; --card:#0d1c22; --line:#21464c; --teal:#3ee0c5; --text:#e8f6f4; --muted:#8aa7ad; --bad:#ff8d8d; --ok:#9dffb0; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:15px/1.4 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+    .wrap { max-width:1100px; margin:0 auto; padding:20px; }
+    h1 { font-size:22px; margin:0 0 6px; }
+    .sub { color:var(--muted); margin:0 0 16px; }
+    .box { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:14px; }
+    label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+    input { width:100%; background:#071014; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:12px; font-size:16px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    button { background:var(--teal); color:#04201c; border:0; border-radius:10px; padding:12px 14px; font-weight:800; cursor:pointer; }
+    button.ghost { background:transparent; color:var(--teal); border:1px solid var(--line); }
+    .stats { display:flex; gap:10px; flex-wrap:wrap; }
+    .stat { flex:1; min-width:140px; background:#071014; border:1px solid var(--line); border-radius:12px; padding:12px; }
+    .stat b { display:block; font-size:22px; color:var(--teal); }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid #183036; vertical-align:top; }
+    th { color:var(--muted); font-size:11px; letter-spacing:.04em; }
+    .yes { color:var(--ok); font-weight:800; }
+    .no { color:var(--bad); }
+    .addr { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; word-break:break-all; }
+    .err { color:var(--bad); margin-top:8px; }
+    .note { color:var(--muted); font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>RXD Pay List</h1>
+    <p class="sub">Private. Only the admin key opens this. Not linked from the game.</p>
+    <div class="box">
+      <label>Admin key</label>
+      <input id="key" type="password" autocomplete="off" placeholder="Paste the ADMIN_KEY from Render" />
+      <div class="row">
+        <button id="load">Load list</button>
+        <button id="download" class="ghost" disabled>Download CSV</button>
+      </div>
+      <div id="err" class="err"></div>
+    </div>
+    <div id="stats" class="stats" style="display:none"></div>
+    <div class="box" id="tableBox" style="display:none; overflow:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Wallet</th><th>Score</th><th>Valid refs</th><th>Channel</th><th>Pay</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <p class="note">Pay only the rows marked eligible. Amount is the score, 1 to 1.</p>
+    </div>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const saved = sessionStorage.getItem("rxd-admin-key") || "";
+    if (saved) $("key").value = saved;
+    let last = null;
+
+    function showError(msg) {
+      $("err").textContent = msg || "";
+    }
+
+    async function loadList() {
+      showError("");
+      const key = $("key").value.trim();
+      if (!key) return showError("Enter the admin key.");
+      sessionStorage.setItem("rxd-admin-key", key);
+      $("load").disabled = true;
+      try {
+        const res = await fetch("/api/admin/payouts", { headers: { "x-admin-key": key } });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Wrong key");
+        last = data;
+        $("download").disabled = false;
+        $("stats").style.display = "flex";
+        $("stats").innerHTML =
+          "<div class='stat'><b>" + data.eligible + "</b>eligible</div>" +
+          "<div class='stat'><b>" + data.totalRxd + "</b>RXD to send</div>" +
+          "<div class='stat'><b>" + data.players + "</b>players checked</div>";
+        $("tableBox").style.display = "block";
+        $("rows").innerHTML = (data.rows || []).map((r) =>
+          "<tr>" +
+          "<td>" + (r.name || "Player") + "<br><span class='note'>" + (r.telegramId || "") + "</span></td>" +
+          "<td class='addr'>" + (r.address || "—") + "</td>" +
+          "<td>" + r.score + "</td>" +
+          "<td>" + r.validReferrals + "</td>" +
+          "<td>" + (r.channelMember ? "yes" : "no") + "</td>" +
+          "<td>" + r.pay + "</td>" +
+          "<td class='" + (r.eligible ? "yes" : "no") + "'>" + (r.eligible ? "eligible" : r.reason) + "</td>" +
+          "</tr>"
+        ).join("") || "<tr><td colspan='7'>No players yet.</td></tr>";
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        $("load").disabled = false;
+      }
+    }
+
+    async function downloadCsv() {
+      const key = $("key").value.trim();
+      if (!key) return showError("Enter the admin key.");
+      const res = await fetch("/api/admin/payouts.csv", { headers: { "x-admin-key": key } });
+      if (!res.ok) return showError("Download blocked. Check the key.");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "rxd-pay-list.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    $("load").onclick = loadList;
+    $("download").onclick = downloadCsv;
+    $("key").addEventListener("keydown", (e) => { if (e.key === "Enter") loadList(); });
+  </script>
+</body>
+</html>
