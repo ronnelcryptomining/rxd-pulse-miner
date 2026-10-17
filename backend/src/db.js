@@ -425,8 +425,7 @@ export function payoutReport() {
     const duplicate = !!(u.address && addressHits[u.address] > 1);
     const fails = [];
     if (!u.address) fails.push("wallet not connected");
-    if (score < 1000) fails.push("score under 1000");
-    if (validRefs < 3) fails.push("under 3 valid referrals");
+    if (validRefs < 1) fails.push("under 1 valid referral");
     if (!u.telegram_id) fails.push("no telegram id");
     if (!u.tg_member) fails.push("not in telegram channel");
     if (duplicate) fails.push("duplicate wallet");
@@ -546,8 +545,7 @@ export function userState(id) {
     surgeLeft: surgeLeft(id),
     blitzCount: user.blitz_count || 0,
     payoutEligible: !!user.address
-      && claimedTotal(id) >= 1000
-      && referralCount(user.referral_code) >= 3
+      && validReferralCount(user.referral_code) >= 1
       && !!user.telegram_id
       && !!user.tg_member,
   };
