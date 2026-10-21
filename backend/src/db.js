@@ -44,8 +44,8 @@ function ensureUserFields(user) {
   if (user.last_address === undefined) user.last_address = user.address || "";
   if (user.surge_today === undefined) user.surge_today = 0;
   if (user.surge_day === undefined) user.surge_day = "";
-  if (user.streak_glow_ready === undefined) user.streak_glow_ready = false;
-  if (user.wave1_gate === undefined) user.wave1_gate = 0;
+  if (user.shop_spent === undefined) user.shop_spent = 0;
+  if (!user.boosts) user.boosts = {};
   return user;
 }
 
@@ -362,11 +362,34 @@ export function markPayout(id, fields) {
 
 export function claimedTotal(id) {
   const user = db.users[id];
-  const fromUser = Number((user && user.score) || 0);
-  const fromPay = db.payouts
-    .filter((p) => p.user_id === id && ["queued", "retry", "sent", "dry_run"].includes(p.status))
-    .reduce((sum, p) => sum + Number(p.amount_rxd || 0), 0);
-  return Math.max(fromUser, fromPay);
+  const fromUser = Number((user && user.score) || 0) - Number((user && user.shop_spent) || 0);
+  return Math.max(0, fromUser);
+}
+
+export function activeBoosts(id) {
+  const user = getUser(id);
+  if (!user) return {};
+  const now = Date.now();
+  const out = {};
+  for (const [key, until] of Object.entries(user.boosts || {})) {
+    if (until > now) out[key] = until;
+  }
+  return out;
+}
+
+export function buyBoost(id, item) {
+  const user = getUser(id);
+  if (!user) throw Object.assign(new Error("Connect a wallet first"), { status: 400 });
+  const balance = claimedTotal(id);
+  if (balance < item.price) throw Object.assign(new Error("Not enough RXD"), { status: 400 });
+  user.shop_spent = Number(user.shop_spent || 0) + item.price;
+  const now = Date.now();
+  const start = Math.max(now, Number((user.boosts || {})[item.boost] || 0));
+  if (!user.boosts) user.boosts = {};
+  user.boosts[item.boost] = start + item.ms;
+  logActivity({ userId: id, type: "shop", amount: -item.price, item: item.id });
+  save(db);
+  return { until: user.boosts[item.boost], balance: claimedTotal(id) };
 }
 
 export function markTelegramMember(id) {
@@ -544,6 +567,7 @@ export function userState(id) {
     blitzReady: blitzUnlocked(id),
     surgeLeft: surgeLeft(id),
     blitzCount: user.blitz_count || 0,
+    boosts: activeBoosts(id),
     payoutEligible: !!user.address
       && validReferralCount(user.referral_code) >= 1
       && !!user.telegram_id

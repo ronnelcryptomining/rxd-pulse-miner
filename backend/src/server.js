@@ -34,6 +34,8 @@ import {
   findByAddress,
   markTelegramMember,
   resetSeason,
+  activeBoosts,
+  buyBoost,
 } from "./db.js";
 import { dryRun, treasuryAddress, treasuryBalance } from "./payout.js";
 
@@ -54,22 +56,22 @@ app.get("/", (_req, res) => {
 });
 
 const CLAIM_MS = Number(process.env.CLAIM_COOLDOWN_MS || 60 * 60 * 1000);
-const CLAIM_RXD = Number(process.env.CLAIM_RXD || 10);
+const CLAIM_RXD = Number(process.env.CLAIM_RXD || 5);
 const QUEST1_RXD = Number(process.env.QUEST1_RXD || 10);
-const QUEST2_RXD = Number(process.env.QUEST2_RXD || 10);
-const REF_RXD = Number(process.env.REF_RXD || 750);
+const QUEST2_RXD = Number(process.env.QUEST2_RXD || 5);
+const REF_RXD = Number(process.env.REF_RXD || 500);
 const WAVE1_MS = Number(process.env.WAVE1_COOLDOWN_MS || 24 * 60 * 60 * 1000);
-const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 3 * 60 * 60 * 1000);
+const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 60 * 60 * 1000);
 const VERIFY_MS = Number(process.env.QUEST_VERIFY_MS || 40 * 1000);
 const VERIFY2_MS = Number(process.env.QUEST2_VERIFY_MS || 50 * 1000);
 const WAVE1 = ["discord", "telegram", "x", "youtube", "facebook"];
 const WAVE2 = ["visit_yt", "visit_yt2", "visit_x", "visit_yt4", "visit_yt5", "visit_fb"];
 const QUESTS = {
-  discord: process.env.DISCORD_URL || "https://discord.gg/radiantblockchain",
+  discord: process.env.DISCORD_URL || "https://www.youtube.com/@RedshiftNotes",
   telegram: process.env.TELEGRAM_CHANNEL || "https://t.me/rxdpulseminer",
   x: process.env.X_URL || "https://x.com/rxdpulseminer?s=11",
   youtube: process.env.YOUTUBE_URL || "https://youtube.com/@rxdpulseminer?si=bNyjQ3OXjbaZlGuU",
-  facebook: process.env.FACEBOOK_URL || "https://www.facebook.com/share/1DsG5GnaJF/?mibextid=wwXIfr",
+  facebook: process.env.FACEBOOK_URL || "https://x.com/rxd_community?s=11",
   visit_yt: process.env.VISIT_YT_URL || "https://youtu.be/oPNhgJrurh8?si=e5z_aDMqo4VLHv7R",
   visit_yt2: process.env.VISIT_YT2_URL || "https://youtu.be/cEmHmYxpVW8?si=K3827AWLqAhjyTp9",
   visit_x: process.env.VISIT_X_URL || "https://youtu.be/V2CXj8cHaBc?si=Lh3w_rJ1DSBnTbp6",
@@ -139,6 +141,65 @@ async function requireTelegramMember(user) {
   return true;
 }
 
+const SHOP = [
+  { id: "orb2x_3", boost: "orb2x", name: "2x Orb Rewards", hours: 3, price: 50, effect: "Orb pays double for 3 hours." },
+  { id: "orb2x_6", boost: "orb2x", name: "2x Orb Rewards", hours: 6, price: 90, effect: "Orb pays double for 6 hours." },
+  { id: "orb2x_12", boost: "orb2x", name: "2x Orb Rewards", hours: 12, price: 150, effect: "Orb pays double for 12 hours." },
+  { id: "orb30_3", boost: "orb30", name: "Orb 30-min Cooldown", hours: 3, price: 40, effect: "Orb is ready every 30 minutes for 3 hours." },
+  { id: "orb30_6", boost: "orb30", name: "Orb 30-min Cooldown", hours: 6, price: 70, effect: "Orb is ready every 30 minutes for 6 hours." },
+  { id: "orb30_12", boost: "orb30", name: "Orb 30-min Cooldown", hours: 12, price: 120, effect: "Orb is ready every 30 minutes for 12 hours." },
+  { id: "wave30_3", boost: "wave30", name: "Wave 2 30-min Cooldown", hours: 3, price: 30, effect: "Wave 2 tasks return in 30 minutes for 3 hours." },
+  { id: "wave30_6", boost: "wave30", name: "Wave 2 30-min Cooldown", hours: 6, price: 55, effect: "Wave 2 tasks return in 30 minutes for 6 hours." },
+  { id: "wave30_12", boost: "wave30", name: "Wave 2 30-min Cooldown", hours: 12, price: 90, effect: "Wave 2 tasks return in 30 minutes for 12 hours." },
+  { id: "auto_3", boost: "auto", name: "Orb Auto Claim", hours: 3, price: 80, effect: "Orb claims itself when ready for 3 hours." },
+  { id: "auto_6", boost: "auto", name: "Orb Auto Claim", hours: 6, price: 140, effect: "Orb claims itself when ready for 6 hours." },
+  { id: "auto_12", boost: "auto", name: "Orb Auto Claim", hours: 12, price: 220, effect: "Orb claims itself when ready for 12 hours." },
+  { id: "bundle_pulse", boost: "bundle_pulse", name: "Pulse Pack", hours: 6, price: 160, effect: "2x orb, 30-min orb, and 30-min Wave 2 for 6 hours." },
+  { id: "bundle_max", boost: "bundle_max", name: "Radiant Pack", hours: 12, price: 400, effect: "All boosts for 12 hours." },
+];
+SHOP.forEach((item) => { item.ms = item.hours * 60 * 60 * 1000; });
+
+function dayKeyShop() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+function shopDeals() {
+  const day = dayKeyShop();
+  const n = Number(day.slice(-2));
+  const daily = [
+    { id: "daily", boost: "orb2x", name: "Daily Deal · 2x Orb", hours: 6, price: 60, effect: "Today only: 2x orb rewards for 6 hours.", ms: 6 * 60 * 60 * 1000 },
+    { id: "daily", boost: "orb30", name: "Daily Deal · Fast Orb", hours: 6, price: 45, effect: "Today only: 30-minute orb cooldown for 6 hours.", ms: 6 * 60 * 60 * 1000 },
+    { id: "daily", boost: "wave30", name: "Daily Deal · Fast Tasks", hours: 6, price: 35, effect: "Today only: Wave 2 returns in 30 minutes for 6 hours.", ms: 6 * 60 * 60 * 1000 },
+  ][n % 3];
+  const weekly = { id: "weekly", boost: "bundle_week", name: "Weekly Special", hours: 12, price: 200, effect: "2x orb and 30-minute orb cooldown for 12 hours.", ms: 12 * 60 * 60 * 1000 };
+  return { daily, weekly };
+}
+
+function boostOn(id, key) {
+  return Number(activeBoosts(id)[key] || 0) > Date.now();
+}
+function claimMsFor(id) {
+  return boostOn(id, "orb30") ? 30 * 60 * 1000 : CLAIM_MS;
+}
+function claimRxdFor(id) {
+  return boostOn(id, "orb2x") ? CLAIM_RXD * 2 : CLAIM_RXD;
+}
+function wave2MsFor(id) {
+  return boostOn(id, "wave30") ? 30 * 60 * 1000 : WAVE2_MS;
+}
+function applyBoostPurchase(id, item) {
+  if (item.boost === "bundle_pulse") {
+    buyBoost(id, { ...item, boost: "orb2x", price: item.price });
+    buyBoost(id, { ...item, boost: "orb30", price: 0 });
+    buyBoost(id, { ...item, boost: "wave30", price: 0 });
+    return;
+  }
+  if (item.boost === "bundle_max" || item.boost === "bundle_week") {
+    buyBoost(id, { ...item, boost: "orb2x", price: item.price });
+    ["orb30", "wave30", "auto"].forEach((boost) => buyBoost(id, { ...item, boost, price: 0 }));
+    return;
+  }
+  buyBoost(id, item);
+}
 function questReward(name) {
   if (WAVE2.includes(name)) return QUEST2_RXD;
   return QUEST1_RXD;
@@ -239,12 +300,21 @@ app.get("/api/me", (req, res) => {
     const id = userIdFromReq(req);
     restoreScore(id, req.query.savedScore || req.body?.savedScore);
     touchStreak(id);
+    if (boostOn(id, "auto")) {
+      const user = getUser(id);
+      const wait = claimMsFor(id);
+      if (user && user.address && (!user.last_claim_at || Date.now() - user.last_claim_at >= wait)) {
+        setLastClaim(id, Date.now());
+        enqueuePayout({ userId: id, address: user.address, kind: "claim", amountRxd: claimRxdFor(id) });
+        payReferrerIfReady(getUser(id));
+      }
+    }
     const state = userState(id);
     if (!state) return res.status(404).json({ error: "Not connected", disconnected: true });
     res.json({
       ...state,
       disconnected: !state.address,
-      nextClaimAt: state.lastClaimAt ? state.lastClaimAt + CLAIM_MS : 0,
+      nextClaimAt: state.lastClaimAt ? state.lastClaimAt + claimMsFor(id) : 0,
     });
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
@@ -275,10 +345,12 @@ app.post("/api/claim", (req, res) => {
     const user = bindWallet(req, id);
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
     const now = Date.now();
-    if (user.last_claim_at && now - user.last_claim_at < CLAIM_MS) {
+    const wait = claimMsFor(id);
+    const amountRxd = claimRxdFor(id);
+    if (user.last_claim_at && now - user.last_claim_at < wait) {
       return res.status(429).json({
         error: "Too soon",
-        nextClaimAt: user.last_claim_at + CLAIM_MS,
+        nextClaimAt: user.last_claim_at + wait,
       });
     }
     setLastClaim(id, now);
@@ -287,10 +359,10 @@ app.post("/api/claim", (req, res) => {
       userId: id,
       address: user.address,
       kind: "claim",
-      amountRxd: CLAIM_RXD,
+      amountRxd,
     });
     payReferrerIfReady(getUser(id));
-    res.json({ ok: true, payoutId, amountRxd: CLAIM_RXD, state: userState(id) });
+    res.json({ ok: true, payoutId, amountRxd, state: userState(id) });
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
   }
@@ -378,7 +450,7 @@ app.post("/api/quest/:name", async (req, res) => {
     }
     const wasDone = wave2Complete(id);
     const resetAt = WAVE1.includes(name) ? (user.wave1_reset_at || 0) : (user.wave2_reset_at || 0);
-    const cooldown = WAVE2.includes(name) ? WAVE2_MS : 0;
+    const cooldown = WAVE2.includes(name) ? wave2MsFor(id) : 0;
     const first = completeQuest(id, name, cooldown, WAVE1.includes(name), resetAt);
     if (!first) return res.status(409).json({ error: "Quest on cooldown" });
     const amountRxd = questReward(name);
@@ -427,6 +499,28 @@ app.get("/api/admin/payouts.csv", requireAdmin, (_req, res) => {
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", "attachment; filename=rxd-pay-list.csv");
   res.send(lines.join("\n"));
+});
+
+app.get("/api/shop", (req, res) => {
+  const deals = shopDeals();
+  res.json({ items: SHOP, daily: deals.daily, weekly: deals.weekly });
+});
+
+app.post("/api/shop/buy", (req, res) => {
+  try {
+    const id = userIdFromReq(req);
+    const user = bindWallet(req, id);
+    if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
+    const deals = shopDeals();
+    const item = SHOP.find((x) => x.id === req.body.itemId)
+      || (req.body.itemId === "daily" ? deals.daily : null)
+      || (req.body.itemId === "weekly" ? deals.weekly : null);
+    if (!item) return res.status(400).json({ error: "Unknown item" });
+    applyBoostPurchase(id, item);
+    res.json({ ok: true, item: item.name, state: userState(id) });
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
 });
 
 app.post("/api/admin/reset-season", requireAdmin, (_req, res) => {
