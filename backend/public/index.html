@@ -107,7 +107,7 @@
     .ref-line .btn { flex: 0 0 64px; }
     .wallet-screen { flex: 1; display: flex; flex-direction: column; min-height: 0; }
     .wallet-bottom { margin-top: auto; padding-top: 10px; }
-    .nav { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: min(430px, 100%); display: grid; grid-template-columns: 1fr 1fr 1fr; background: #081216ee; border-top: 1px solid #1a2e36; padding: 8px 8px calc(10px + env(safe-area-inset-bottom)); }
+    .nav { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: min(430px, 100%); display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; background: #081216ee; border-top: 1px solid #1a2e36; padding: 8px 8px calc(10px + env(safe-area-inset-bottom)); }
     .nav button { background: none; border: 0; color: var(--muted); font-size: 11px; font-weight: 700; padding: 8px; cursor: pointer; }
     .nav button.on { color: var(--teal); }
     #storm { display: none; position: fixed; inset: 0; z-index: 40; background: #050b0ecc; overflow: hidden; }
@@ -169,8 +169,8 @@
         <div class="task-card wave1" data-quest="telegram" data-reward="10"><div class="ico">T</div><div class="meta"><div class="t">Join RXD Pulse Miner on Telegram</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://t.me/rxdpulseminer">Go</button></div>
         <div class="task-card wave1" data-quest="x" data-reward="10"><div class="ico">X</div><div class="meta"><div class="t">Follow RXD Pulse on X</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxdpulseminer?s=11">Go</button></div>
         <div class="task-card wave1" data-quest="youtube" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">Subscribe on YouTube</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtube.com/@rxdpulseminer?si=bNyjQ3OXjbaZlGuU">Go</button></div>
-        <div class="task-card wave1" data-quest="facebook" data-reward="10"><div class="ico">F</div><div class="meta"><div class="t">Follow RXD Pulse on Facebook</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://www.facebook.com/share/1DsG5GnaJF/?mibextid=wwXIfr">Go</button></div>
-        <div class="task-card wave1" data-quest="discord" data-reward="10"><div class="ico">D</div><div class="meta"><div class="t">Join Radiant Blockchain on Discord</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://discord.gg/radiantblockchain">Go</button></div>
+        <div class="task-card wave1" data-quest="facebook" data-reward="10"><div class="ico">X</div><div class="meta"><div class="t">Follow Radiant L1 Community on X</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://x.com/rxd_community?s=11">Go</button></div>
+        <div class="task-card wave1" data-quest="discord" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">Subscribe @Redshift Notes on YouTube</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://www.youtube.com/@RedshiftNotes">Go</button></div>
         <div class="task-card wave2 hidden" data-quest="visit_yt" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #1</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/oPNhgJrurh8?si=e5z_aDMqo4VLHv7R">Go</button></div>
         <div class="task-card wave2 hidden" data-quest="visit_yt2" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #2</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/cEmHmYxpVW8?si=K3827AWLqAhjyTp9">Go</button></div>
         <div class="task-card wave2 hidden" data-quest="visit_x" data-reward="10"><div class="ico">Y</div><div class="meta"><div class="t">RXD Pulse Miner video #3</div><div class="r">+10 RXD</div></div><button class="btn q-btn" data-url="https://youtu.be/V2CXj8cHaBc?si=Lh3w_rJ1DSBnTbp6">Go</button></div>
@@ -196,7 +196,7 @@
             <input id="refCode" readonly placeholder="Connect to get your link" />
             <button class="btn ghost" id="copyRef">Copy</button>
           </div>
-          <p class="note" id="refStats">Referrals: 0 · Earn +750 RXD when a new player opens your link, connects, and mines.</p>
+          <p class="note" id="refStats">Referrals: 0 · Earn +500 RXD when a new player opens your link, connects, and mines.</p>
         </div>
         <div class="wallet-bottom">
           <div class="ath-static">ALL TIME HIGH $0.00918</div>
@@ -205,8 +205,21 @@
         </div>
       </div>
     </section>
+    <section class="screen" id="screen-shop">
+      <div id="activeBoosts" class="note" style="margin:8px 0 10px">No active boosts.</div>
+      <div id="shopList"></div>
+    </section>
   </div>
-  <div id="storm"></div>
+  <div id="shopModal" style="display:none;position:fixed;inset:0;z-index:50;background:#050b0ecc;align-items:center;justify-content:center;padding:16px">
+    <div style="width:100%;max-width:360px;background:#0d1c22;border:1px solid #21464c;border-radius:16px;padding:16px">
+      <h3 id="shopTitle" style="margin-bottom:6px">Confirm</h3>
+      <p id="shopBody" class="note"></p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="shopYes">Buy</button>
+        <button class="btn ghost" id="shopNo">Cancel</button>
+      </div>
+    </div>
+  </div>
   <div id="board">
     <h3>TOP 20 ALL TIME</h3>
     <div id="boardList"></div>
@@ -215,17 +228,18 @@
   <nav class="nav">
     <button class="on" data-tab="mine">Mine</button>
     <button data-tab="tasks">Tasks</button>
+    <button data-tab="shop">Shop</button>
     <button data-tab="wallet">Wallet</button>
   </nav>
   <script>
     let CLAIM_MS = 60 * 60 * 1000;
     let WAVE1_MS = 24 * 60 * 60 * 1000;
-    let WAVE2_MS = 3 * 60 * 60 * 1000;
+    let WAVE2_MS = 60 * 60 * 1000;
     let VERIFY_MS = 40 * 1000;
     let VERIFY2_MS = 50 * 1000;
-    let CLAIM_AMT = 10;
+    let CLAIM_AMT = 5;
     let QUEST1 = 10;
-    let QUEST2 = 10;
+    let QUEST2 = 5;
     const WAVE1 = ["discord", "telegram", "x", "youtube", "facebook"];
     const KEY = "rxd-pulse-v16";
     const API = localStorage.getItem("rxd-api") || "/api";
@@ -376,7 +390,8 @@
       state.wave2Done = !!s.wave2Done;
       state.wave1Reset = s.wave1Reset || 0;
       state.wave2Reset = s.wave2Reset || 0;
-      state.blitzReady = !!s.blitzReady;
+      state.boosts = s.boosts || {};
+      state.nextClaimAt = s.nextClaimAt || 0;
       state.surgeLeft = s.surgeLeft == null ? 10 : Number(s.surgeLeft);
       state.quests = {};
       state.pending = {};
@@ -406,7 +421,13 @@
       $("screen-" + name).classList.add("on");
       $("tagline").style.display = name === "mine" ? "block" : "none";
     }
-    function remainingClaim() { if (!state.lastClaim) return 0; return Math.max(0, state.lastClaim + CLAIM_MS - Date.now()); }
+    function remainingClaim() {
+      if (state.nextClaimAt) return Math.max(0, state.nextClaimAt - Date.now());
+      const ms = state.boosts && state.boosts.orb30 ? 30 * 60 * 1000 : CLAIM_MS;
+      if (!state.lastClaim) return 0;
+      return Math.max(0, state.lastClaim + ms - Date.now());
+    }
+    function wave2MsNow() { return state.boosts && state.boosts.wave30 ? 30 * 60 * 1000 : WAVE2_MS; }
     function questDone(name) {
       const q = state.quests[name];
       if (!q || !q.completed) return false;
@@ -418,7 +439,7 @@
       if (!q || !q.completed) return 0;
       return Math.max(0, q.completed + ms - Date.now());
     }
-    function wave2Left(name) { return waveLeft(name, WAVE2_MS); }
+    function wave2Left(name) { return waveLeft(name, wave2MsNow()); }
     function wave1Left(name) { return waveLeft(name, WAVE1_MS); }
     function fmt(ms) {
       const s = Math.ceil(ms / 1000);
@@ -445,7 +466,7 @@
       $("arc").style.strokeDashoffset = String(CIRC * (ready ? 0 : 1 - progress));
       if (!state.address) $("timer").innerHTML = "CONNECT WALLET";
       else if (left > 0) $("timer").innerHTML = "NEXT CLAIM <b>" + fmt(left) + "</b>";
-      else $("timer").innerHTML = "<b>CLAIM " + CLAIM_AMT + " RXD</b>";
+      else $("timer").innerHTML = "<b>CLAIM " + (state.boosts && state.boosts.orb2x ? CLAIM_AMT * 2 : CLAIM_AMT) + " RXD</b>";
       $("tagline").classList.toggle("live", !!state.address && !!state.blitzReady);
     }
     function renderWallet() {
@@ -484,7 +505,7 @@
         else setBtn(btn, "go", "Go");
       });
       $("refCode").value = referralLink();
-      $("refStats").textContent = "Referrals: " + (state.referrals || 0) + " · Earn +750 RXD when a new player opens your link, connects, and mines.";
+      $("refStats").textContent = "Referrals: " + (state.referrals || 0) + " · Earn +500 RXD when a new player opens your link, connects, and mines.";
     }
     document.querySelectorAll(".nav button").forEach(function(btn) {
       btn.onclick = function() { showTab(btn.dataset.tab); };
@@ -632,7 +653,60 @@
         } catch (err) { alert(err.message); }
       };
     });
-    function renderAll() { renderMine(); renderQuests(); renderWallet(); }
+    let shopItems = [];
+    let pendingBuy = null;
+    function boostLabel(key) {
+      return { orb2x: "2x Orb", orb30: "Orb 30 min", wave30: "Wave 2 30 min", auto: "Auto Claim" }[key] || key;
+    }
+    function renderShop() {
+      const box = $("activeBoosts");
+      if (!box) return;
+      const now = Date.now();
+      const rows = Object.entries(state.boosts || {}).filter(function(pair) { return pair[1] > now; });
+      box.innerHTML = rows.length
+        ? rows.map(function(pair) { return "<div class='task-card'><div class='meta'><div class='t'>" + boostLabel(pair[0]) + "</div><div class='r'>" + fmt(pair[1] - now) + " left</div></div></div>"; }).join("")
+        : "No active boosts.";
+      const list = $("shopList");
+      if (!list) return;
+      list.innerHTML = shopItems.map(function(item) {
+        return "<div class='task-card'><div class='meta'><div class='t'>" + item.name + " · " + item.hours + "h</div><div class='r'>" + item.price + " RXD</div></div><button class='btn buy' data-id='" + item.id + "'>Buy</button></div>";
+      }).join("");
+      list.querySelectorAll(".buy").forEach(function(btn) {
+        btn.onclick = function() {
+          pendingBuy = shopItems.find(function(x) { return x.id === btn.dataset.id; });
+          if (!pendingBuy) return;
+          $("shopTitle").textContent = pendingBuy.name;
+          $("shopBody").textContent = pendingBuy.effect + " Price: " + pendingBuy.price + " RXD. Starts instantly.";
+          $("shopModal").style.display = "flex";
+        };
+      });
+    }
+    async function loadShop() {
+      try {
+        const data = await api("/shop");
+        shopItems = [data.daily, data.weekly].concat(data.items || []);
+        renderShop();
+      } catch (e) {}
+    }
+    $("shopYes").onclick = async function() {
+      if (!pendingBuy) return;
+      try {
+        const res = await api("/shop/buy", { method: "POST", body: JSON.stringify(Object.assign({}, identity(), { itemId: pendingBuy.id })) });
+        applyServer(res.state);
+        state.claimed = Number(res.state.claimed || 0);
+        localStorage.setItem("rxd-claimed", String(state.claimed));
+        $("shopModal").style.display = "none";
+        $("toast").textContent = pendingBuy.name + " active";
+        $("toast").classList.add("on");
+        setTimeout(function() { $("toast").classList.remove("on"); }, 1600);
+        pendingBuy = null;
+        renderAll();
+      } catch (err) {
+        $("shopBody").textContent = err.message;
+      }
+    };
+    $("shopNo").onclick = function() { $("shopModal").style.display = "none"; pendingBuy = null; };
+    function renderAll() { renderMine(); renderQuests(); renderWallet(); renderShop(); }
     let stormTimer = null;
     let stormHits = 0;
     let stormKind = "streak";
@@ -817,7 +891,7 @@
       const el = $("payoutCount");
       if (!el) return;
       const left = PAYOUT_AT - Date.now();
-      if (left <= 0) { el.textContent = "SNAPSHOT CLOSED"; return; }
+      if (left <= 0) { el.textContent = "SEASON 2"; return; }
       const s = Math.floor(left / 1000);
       const d = Math.floor(s / 86400);
       const h = Math.floor((s % 86400) / 3600);
@@ -851,6 +925,7 @@
         }
       } catch (e) {}
       renderAll();
+      loadShop();
     })();
     async function pullState() {
       try {
