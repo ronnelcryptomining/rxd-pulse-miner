@@ -219,6 +219,7 @@
       <button class="btn ghost" id="spinClose" style="margin-left:8px">Close</button>
     </div>
   </div>
+  <div id="shopModal" style="display:none;position:fixed;inset:0;z-index:70;background:#050b0ecc;align-items:center;justify-content:center;padding:16px">
     <div style="width:100%;max-width:360px;background:#0d1c22;border:1px solid #21464c;border-radius:16px;padding:16px">
       <h3 id="shopTitle" style="margin-bottom:6px">Confirm</h3>
       <p id="shopBody" class="note"></p>
@@ -408,7 +409,7 @@
       state.boosts = s.boosts || {};
       state.spinReady = !!s.spinReady;
       state.nextClaimAt = s.nextClaimAt || 0;
-      state.surgeLeft = s.surgeLeft == null ? 10 : Number(s.surgeLeft);
+      state.surgeLeft = s.surgeLeft == null ? 5 : Number(s.surgeLeft);
       state.quests = {};
       state.pending = {};
       (s.quests || []).forEach(function(q) {
@@ -905,9 +906,10 @@
       }, 2200);
     }
     function startSurge() {
-      if (stormTimer || surgeTimer) return;
+      if (!state.address && localStorage.getItem("rxd-addr")) state.address = localStorage.getItem("rxd-addr");
       if (!state.address) { showTab("wallet"); return; }
       if (Number(state.surgeLeft) <= 0) return;
+      if (surgeTimer) return;
       surgeHits = 0;
       surgeCombo = 0;
       $("storm").innerHTML = "";
@@ -917,6 +919,7 @@
       setTimeout(endSurge, 12000);
     }
     $("chainTitle").onclick = function() {
+      if (!state.address && localStorage.getItem("rxd-addr")) state.address = localStorage.getItem("rxd-addr");
       if (!state.address) return;
       const now = Date.now();
       secretTaps = secretTaps.filter(function(t) { return now - t < 4000; });
