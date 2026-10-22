@@ -34,8 +34,11 @@ import {
   findByAddress,
   markTelegramMember,
   resetSeason,
+  ensureSeasonReset,
   activeBoosts,
   buyBoost,
+  spinReady,
+  markSpin,
 } from "./db.js";
 import { dryRun, treasuryAddress, treasuryBalance } from "./payout.js";
 
@@ -142,20 +145,10 @@ async function requireTelegramMember(user) {
 }
 
 const SHOP = [
-  { id: "orb2x_3", boost: "orb2x", name: "2x Orb Rewards", hours: 3, price: 50, effect: "Orb pays double for 3 hours." },
   { id: "orb2x_6", boost: "orb2x", name: "2x Orb Rewards", hours: 6, price: 90, effect: "Orb pays double for 6 hours." },
-  { id: "orb2x_12", boost: "orb2x", name: "2x Orb Rewards", hours: 12, price: 150, effect: "Orb pays double for 12 hours." },
-  { id: "orb30_3", boost: "orb30", name: "Orb 30-min Cooldown", hours: 3, price: 40, effect: "Orb is ready every 30 minutes for 3 hours." },
   { id: "orb30_6", boost: "orb30", name: "Orb 30-min Cooldown", hours: 6, price: 70, effect: "Orb is ready every 30 minutes for 6 hours." },
-  { id: "orb30_12", boost: "orb30", name: "Orb 30-min Cooldown", hours: 12, price: 120, effect: "Orb is ready every 30 minutes for 12 hours." },
-  { id: "wave30_3", boost: "wave30", name: "Wave 2 30-min Cooldown", hours: 3, price: 30, effect: "Wave 2 tasks return in 30 minutes for 3 hours." },
   { id: "wave30_6", boost: "wave30", name: "Wave 2 30-min Cooldown", hours: 6, price: 55, effect: "Wave 2 tasks return in 30 minutes for 6 hours." },
-  { id: "wave30_12", boost: "wave30", name: "Wave 2 30-min Cooldown", hours: 12, price: 90, effect: "Wave 2 tasks return in 30 minutes for 12 hours." },
-  { id: "auto_3", boost: "auto", name: "Orb Auto Claim", hours: 3, price: 80, effect: "Orb claims itself when ready for 3 hours." },
   { id: "auto_6", boost: "auto", name: "Orb Auto Claim", hours: 6, price: 140, effect: "Orb claims itself when ready for 6 hours." },
-  { id: "auto_12", boost: "auto", name: "Orb Auto Claim", hours: 12, price: 220, effect: "Orb claims itself when ready for 12 hours." },
-  { id: "bundle_pulse", boost: "bundle_pulse", name: "Pulse Pack", hours: 6, price: 160, effect: "2x orb, 30-min orb, and 30-min Wave 2 for 6 hours." },
-  { id: "bundle_max", boost: "bundle_max", name: "Radiant Pack", hours: 12, price: 400, effect: "All boosts for 12 hours." },
 ];
 SHOP.forEach((item) => { item.ms = item.hours * 60 * 60 * 1000; });
 
@@ -170,8 +163,7 @@ function shopDeals() {
     { id: "daily", boost: "orb30", name: "Daily Deal · Fast Orb", hours: 6, price: 45, effect: "Today only: 30-minute orb cooldown for 6 hours.", ms: 6 * 60 * 60 * 1000 },
     { id: "daily", boost: "wave30", name: "Daily Deal · Fast Tasks", hours: 6, price: 35, effect: "Today only: Wave 2 returns in 30 minutes for 6 hours.", ms: 6 * 60 * 60 * 1000 },
   ][n % 3];
-  const weekly = { id: "weekly", boost: "bundle_week", name: "Weekly Special", hours: 12, price: 200, effect: "2x orb and 30-minute orb cooldown for 12 hours.", ms: 12 * 60 * 60 * 1000 };
-  return { daily, weekly };
+  return { daily };
 }
 
 function boostOn(id, key) {
@@ -503,7 +495,7 @@ app.get("/api/admin/payouts.csv", requireAdmin, (_req, res) => {
 
 app.get("/api/shop", (req, res) => {
   const deals = shopDeals();
-  res.json({ items: SHOP, daily: deals.daily, weekly: deals.weekly });
+  res.json({ items: SHOP, daily: deals.daily });
 });
 
 app.post("/api/shop/buy", (req, res) => {
@@ -513,11 +505,26 @@ app.post("/api/shop/buy", (req, res) => {
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
     const deals = shopDeals();
     const item = SHOP.find((x) => x.id === req.body.itemId)
-      || (req.body.itemId === "daily" ? deals.daily : null)
-      || (req.body.itemId === "weekly" ? deals.weekly : null);
+      || (req.body.itemId === "daily" ? deals.daily : null);
     if (!item) return res.status(400).json({ error: "Unknown item" });
     applyBoostPurchase(id, item);
     res.json({ ok: true, item: item.name, state: userState(id) });
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
+});
+
+app.post("/api/spin", (req, res) => {
+  try {
+    const id = userIdFromReq(req);
+    const user = bindWallet(req, id);
+    if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
+    if (!spinReady(id)) return res.status(429).json({ error: "Spin already used today" });
+    const prizes = [1, 1, 2, 2, 5, 5, 8, 10, 15];
+    const amountRxd = prizes[Math.floor(Math.random() * prizes.length)];
+    markSpin(id, amountRxd);
+    enqueuePayout({ userId: id, address: user.address, kind: "spin", amountRxd });
+    res.json({ ok: true, amountRxd, state: userState(id) });
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
   }
@@ -552,6 +559,12 @@ app.post("/api/dev/reset", (_req, res) => {
 });
 
 app.get("/health", (_req, res) => res.json({ ok: true, dryRun }));
+
+try {
+  console.log("season check", ensureSeasonReset());
+} catch (err) {
+  console.error("reset on boot failed", err.message);
+}
 
 const port = Number(process.env.PORT || 8787);
 app.listen(port, () => {

@@ -73,10 +73,10 @@ export function touchStreak(id) {
   const today = todayKey();
   if (user.last_active_day !== today) {
     if (user.last_active_day === yesterdayKey()) user.streak = (user.streak || 0) + 1;
-    else if (!user.streak_glow_ready) user.streak = 1;
+    else user.streak = 1;
     user.last_active_day = today;
+    user.login_days = (user.login_days || 0) + 1;
   }
-  if ((user.streak || 0) >= 3) user.streak_glow_ready = true;
   const gate = Math.floor((user.streak || 0) / 3) * 3;
   if (gate >= 3 && (user.wave1_gate || 0) < gate) {
     user.wave1_gate = gate;
@@ -412,11 +412,23 @@ export function resetSeason() {
   }
   for (const u of Object.values(db.users)) {
     u.score = 0;
+    u.shop_spent = 0;
     u.referred_by = "";
     u.referral_paid = false;
+    u.mine_count = 0;
+    u.login_days = 0;
+    u.last_spin_day = "";
+    u.last_claim_at = 0;
+    u.boosts = {};
   }
+  db.season_tag = "spin2";
   save(db);
-  return { ok: true, seasonStartedAt: now, users: Object.keys(db.users).length };
+  return { ok: true, seasonStartedAt: now, users: Object.keys(db.users).length, reset: "scores-and-referrals" };
+}
+
+export function ensureSeasonReset() {
+  if (db.season_tag === "spin2") return { ok: true, skipped: true };
+  return resetSeason();
 }
 
 export function referralCount(code) {
@@ -428,8 +440,8 @@ export function validReferralCount(code) {
   if (!code) return 0;
   return Object.values(db.users).filter((u) =>
     (u.referred_by || "").toUpperCase() === code.toUpperCase()
-    && !!u.address
-    && (u.mine_count || 0) >= 1
+    && (u.login_days || 0) >= 2
+    && (u.mine_count || 0) >= 2
   ).length;
 }
 
@@ -448,7 +460,7 @@ export function payoutReport() {
     const duplicate = !!(u.address && addressHits[u.address] > 1);
     const fails = [];
     if (!u.address) fails.push("wallet not connected");
-    if (validRefs < 1) fails.push("under 1 valid referral");
+    if (validRefs < 2) fails.push("under 2 valid referrals");
     if (!u.telegram_id) fails.push("no telegram id");
     if (!u.tg_member) fails.push("not in telegram channel");
     if (duplicate) fails.push("duplicate wallet");
@@ -509,10 +521,22 @@ export function wave2Complete(id) {
   return wave2ClaimedCount(id) === WAVE2_NAMES.length;
 }
 
-export function blitzUnlocked(id) {
+export function blitzUnlocked() {
+  return false;
+}
+
+export function spinReady(id) {
   const user = getUser(id);
   if (!user || !user.address) return false;
-  return !!user.address && !!user.streak_glow_ready;
+  return user.last_spin_day !== todayKey();
+}
+
+export function markSpin(id, amount) {
+  const user = getUser(id);
+  if (!user) return null;
+  user.last_spin_day = todayKey();
+  save(db);
+  return user;
 }
 
 export function referralLeaders(limit = 5) {
@@ -564,12 +588,13 @@ export function userState(id) {
     wave2Reset: user.wave2_reset_at || 0,
     wave1Done: wave1Complete(id),
     wave2Done: wave2Complete(id),
-    blitzReady: blitzUnlocked(id),
+    blitzReady: false,
+    spinReady: spinReady(id),
     surgeLeft: surgeLeft(id),
     blitzCount: user.blitz_count || 0,
     boosts: activeBoosts(id),
     payoutEligible: !!user.address
-      && validReferralCount(user.referral_code) >= 1
+      && validReferralCount(user.referral_code) >= 2
       && !!user.telegram_id
       && !!user.tg_member,
   };
