@@ -210,7 +210,15 @@
       <div id="shopList"></div>
     </section>
   </div>
-  <div id="shopModal" style="display:none;position:fixed;inset:0;z-index:50;background:#050b0ecc;align-items:center;justify-content:center;padding:16px">
+  <div id="spinModal" style="display:none;position:fixed;inset:0;z-index:60;background:#050b0ecc;align-items:center;justify-content:center;padding:16px">
+    <div style="width:100%;max-width:360px;background:#0d1c22;border:1px solid #21464c;border-radius:16px;padding:16px;text-align:center">
+      <h3>Pulse Spin</h3>
+      <p class="note">Daily free spin</p>
+      <div id="spinWheel" style="font-size:42px;font-weight:900;color:#3ee0c5;margin:16px 0">+?</div>
+      <button class="btn" id="spinGo">Spin</button>
+      <button class="btn ghost" id="spinClose" style="margin-left:8px">Close</button>
+    </div>
+  </div>
     <div style="width:100%;max-width:360px;background:#0d1c22;border:1px solid #21464c;border-radius:16px;padding:16px">
       <h3 id="shopTitle" style="margin-bottom:6px">Confirm</h3>
       <p id="shopBody" class="note"></p>
@@ -391,6 +399,7 @@
       state.wave1Reset = s.wave1Reset || 0;
       state.wave2Reset = s.wave2Reset || 0;
       state.boosts = s.boosts || {};
+      state.spinReady = !!s.spinReady;
       state.nextClaimAt = s.nextClaimAt || 0;
       state.surgeLeft = s.surgeLeft == null ? 10 : Number(s.surgeLeft);
       state.quests = {};
@@ -467,7 +476,7 @@
       if (!state.address) $("timer").innerHTML = "CONNECT WALLET";
       else if (left > 0) $("timer").innerHTML = "NEXT CLAIM <b>" + fmt(left) + "</b>";
       else $("timer").innerHTML = "<b>CLAIM " + (state.boosts && state.boosts.orb2x ? CLAIM_AMT * 2 : CLAIM_AMT) + " RXD</b>";
-      $("tagline").classList.toggle("live", !!state.address && !!state.blitzReady);
+      $("tagline").classList.toggle("live", !!state.address && !!state.spinReady);
     }
     function renderWallet() {
       const on = !!state.address;
@@ -684,7 +693,7 @@
     async function loadShop() {
       try {
         const data = await api("/shop");
-        shopItems = [data.daily, data.weekly].concat(data.items || []);
+        shopItems = [data.daily].concat(data.items || []);
         renderShop();
       } catch (e) {}
     }
@@ -796,8 +805,32 @@
       }, 2000);
     }
     $("tagline").onclick = function() {
-      if (!state.address || !state.blitzReady) return;
-      startCinematic("streak");
+      if (!state.address || !state.spinReady) return;
+      $("spinWheel").textContent = "+?";
+      $("spinModal").style.display = "flex";
+    };
+    $("spinClose").onclick = function() { $("spinModal").style.display = "none"; };
+    $("spinGo").onclick = async function() {
+      const wheel = [1, 2, 5, 8, 10, 15];
+      let n = 0;
+      const tick = setInterval(function() {
+        $("spinWheel").textContent = "+" + wheel[n % wheel.length];
+        n += 1;
+      }, 80);
+      try {
+        const res = await api("/spin", { method: "POST", body: JSON.stringify(identity()) });
+        setTimeout(async function() {
+          clearInterval(tick);
+          $("spinWheel").textContent = "+" + res.amountRxd + " RXD";
+          applyServer(res.state);
+          state.claimed = Number(res.state.claimed || 0);
+          localStorage.setItem("rxd-claimed", String(state.claimed));
+          renderAll();
+        }, 1600);
+      } catch (err) {
+        clearInterval(tick);
+        $("spinWheel").textContent = err.message;
+      }
     };
     let secretTaps = [];
     let surgeTimer = null;
