@@ -457,7 +457,7 @@ app.post("/api/quest/:name", async (req, res) => {
       payoutId,
       amountRxd,
       url: QUESTS[name],
-      pulseReady: !wasDone && wave2ClaimedCount(id) === WAVE2.length,
+      pulseReady: WAVE2.includes(name) && wave2ClaimedCount(id) === WAVE2.length,
       wave2Claimed: wave2ClaimedCount(id),
       state: userState(id),
     });

@@ -186,6 +186,7 @@ export function upsertUser(id, address, extra = {}) {
 export function restoreScore(id, savedScore) {
   const user = getUser(id);
   if (!user) return null;
+  if (user.score_reset_at && Date.now() - user.score_reset_at < 6 * 60 * 60 * 1000 && Number(user.score || 0) === 0) return user;
   const n = Number(savedScore || 0);
   if (n > 0 && n < 100000000 && Number(user.score || 0) < n) {
     user.score = n;
@@ -420,14 +421,15 @@ export function resetSeason() {
     u.last_spin_day = "";
     u.last_claim_at = 0;
     u.boosts = {};
+    u.score_reset_at = now;
   }
-  db.season_tag = "spin2";
+  db.season_tag = "spin3";
   save(db);
   return { ok: true, seasonStartedAt: now, users: Object.keys(db.users).length, reset: "scores-and-referrals" };
 }
 
 export function ensureSeasonReset() {
-  if (db.season_tag === "spin2") return { ok: true, skipped: true };
+  if (db.season_tag === "spin3") return { ok: true, skipped: true };
   return resetSeason();
 }
 
@@ -593,6 +595,7 @@ export function userState(id) {
     surgeLeft: surgeLeft(id),
     blitzCount: user.blitz_count || 0,
     boosts: activeBoosts(id),
+    seasonStartedAt: db.season_started_at || 0,
     payoutEligible: !!user.address
       && validReferralCount(user.referral_code) >= 2
       && !!user.telegram_id
