@@ -105,14 +105,14 @@ export function surgeReady(id) {
   const user = getUser(id);
   if (!user || !user.address) return false;
   const used = user.surge_day === todayKey() ? (user.surge_today || 0) : 0;
-  return used < 10;
+  return used < 5;
 }
 
 export function surgeLeft(id) {
   const user = getUser(id);
   if (!user) return 0;
   const used = user.surge_day === todayKey() ? (user.surge_today || 0) : 0;
-  return Math.max(0, 10 - used);
+  return Math.max(0, 5 - used);
 }
 
 export function markBlitz(id, kind) {
