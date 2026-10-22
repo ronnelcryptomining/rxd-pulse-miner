@@ -59,9 +59,9 @@ app.get("/", (_req, res) => {
 });
 
 const CLAIM_MS = Number(process.env.CLAIM_COOLDOWN_MS || 60 * 60 * 1000);
-const CLAIM_RXD = Number(process.env.CLAIM_RXD || 5);
-const QUEST1_RXD = Number(process.env.QUEST1_RXD || 10);
-const QUEST2_RXD = Number(process.env.QUEST2_RXD || 5);
+const CLAIM_RXD = Number(process.env.CLAIM_RXD || 2);
+const QUEST1_RXD = Number(process.env.QUEST1_RXD || 3);
+const QUEST2_RXD = Number(process.env.QUEST2_RXD || 2);
 const REF_RXD = Number(process.env.REF_RXD || 500);
 const WAVE1_MS = Number(process.env.WAVE1_COOLDOWN_MS || 24 * 60 * 60 * 1000);
 const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 60 * 60 * 1000);
@@ -370,7 +370,7 @@ app.post("/api/blitz", (req, res) => {
     const allowed = kind === "wave2" ? wave2Complete(id) : blitzUnlocked(id);
     if (!BLITZ_TEST && !allowed) return res.status(403).json({ error: "Locked" });
     const hits = Math.max(0, Math.min(80, Number(req.body.hits || 0)));
-    const amountRxd = hits * 1;
+    const amountRxd = hits * 0.5;
     markBlitz(id, kind);
     if (amountRxd > 0) {
       enqueuePayout({
