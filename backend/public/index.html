@@ -388,8 +388,15 @@
         localStorage.setItem("rxd-disconnected", "1");
       }
       const incoming = Number(s.claimed || 0);
-      const kept = Number(state.claimed || localStorage.getItem("rxd-claimed") || 0);
-      state.claimed = Math.max(incoming, kept);
+      const season = Number(s.seasonStartedAt || 0);
+      if (season && season !== Number(state.seasonStartedAt || 0)) {
+        state.claimed = incoming;
+        localStorage.setItem("rxd-claimed", String(incoming));
+        state.seasonStartedAt = season;
+      } else {
+        const kept = Number(state.claimed || localStorage.getItem("rxd-claimed") || 0);
+        state.claimed = Math.max(incoming, kept);
+      }
       state.lastClaim = s.lastClaimAt || 0;
       state.referralCode = s.referralCode || state.referralCode || "";
       state.referrals = Number(s.referrals || 0);
@@ -643,7 +650,7 @@
             delete state.pending[quest];
             save();
             renderAll();
-            if (res.pulseReady) startCinematic("wave2");
+            if (res.pulseReady || (card.classList.contains("wave2") && Number(res.wave2Claimed) >= 6)) startCinematic("wave2");
           } catch (err) { alert(err.message); }
           return;
         }
