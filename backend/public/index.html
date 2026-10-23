@@ -244,7 +244,7 @@
   <script>
     let CLAIM_MS = 60 * 60 * 1000;
     let WAVE1_MS = 24 * 60 * 60 * 1000;
-    let WAVE2_MS = 60 * 60 * 1000;
+    let WAVE2_MS = 2 * 60 * 60 * 1000;
     let VERIFY_MS = 40 * 1000;
     let VERIFY2_MS = 50 * 1000;
     let CLAIM_AMT = 2;
@@ -390,15 +390,9 @@
         localStorage.setItem("rxd-disconnected", "1");
       }
       const incoming = Number(s.claimed || 0);
-      const season = Number(s.seasonStartedAt || 0);
-      if (season && season !== Number(state.seasonStartedAt || 0)) {
-        state.claimed = incoming;
-        localStorage.setItem("rxd-claimed", String(incoming));
-        state.seasonStartedAt = season;
-      } else {
-        const kept = Number(state.claimed || localStorage.getItem("rxd-claimed") || 0);
-        state.claimed = Math.max(incoming, kept);
-      }
+      state.claimed = incoming;
+      localStorage.setItem("rxd-claimed", String(incoming));
+      state.seasonStartedAt = Number(s.seasonStartedAt || state.seasonStartedAt || 0);
       state.lastClaim = s.lastClaimAt || 0;
       state.referralCode = s.referralCode || state.referralCode || "";
       state.referrals = Number(s.referrals || 0);
@@ -445,7 +439,7 @@
       if (!state.lastClaim) return 0;
       return Math.max(0, state.lastClaim + ms - Date.now());
     }
-    function wave2MsNow() { return state.boosts && state.boosts.wave30 ? 30 * 60 * 1000 : WAVE2_MS; }
+    function wave2MsNow() { return state.boosts && state.boosts.wave30 ? 60 * 60 * 1000 : WAVE2_MS; }
     function questDone(name) {
       const q = state.quests[name];
       if (!q || !q.completed) return false;
@@ -523,7 +517,7 @@
         else setBtn(btn, "go", "Go");
       });
       $("refCode").value = referralLink();
-      $("refStats").textContent = "Referrals: " + (state.referrals || 0) + " · Earn +500 RXD when a new player opens your link, connects, and mines.";
+      $("refStats").textContent = "Referrals: " + (state.referrals || 0) + " · Earn +500 RXD when a new player logs in twice and mines twice.";
     }
     document.querySelectorAll(".nav button").forEach(function(btn) {
       btn.onclick = function() { showTab(btn.dataset.tab); };
@@ -652,7 +646,7 @@
             delete state.pending[quest];
             save();
             renderAll();
-            if (res.pulseReady || (card.classList.contains("wave2") && Number(res.wave2Claimed) >= 6)) startCinematic("wave2");
+            if (res.pulseReady) startCinematic("wave2");
           } catch (err) { alert(err.message); }
           return;
         }
@@ -674,7 +668,7 @@
     let shopItems = [];
     let pendingBuy = null;
     function boostLabel(key) {
-      return { orb2x: "2x Orb", orb30: "Orb 30 min", wave30: "Wave 2 30 min", auto: "Auto Claim" }[key] || key;
+      return { orb2x: "2x Orb", orb30: "Orb 30 min", wave30: "Wave 2 1 hour", auto: "Auto Claim" }[key] || key;
     }
     function renderShop() {
       const box = $("activeBoosts");
@@ -775,7 +769,7 @@
       $("storm").classList.remove("intro");
       $("storm").classList.add("on");
       const before = Number(state.claimed || 0);
-      let earned = hits * 0.5;
+      let earned = hits * 0.1;
       try {
         const res = await api("/blitz", { method: "POST", body: JSON.stringify(Object.assign({ hits: hits, kind: stormKind }, identity())) });
         applyServer(res.state);
@@ -832,8 +826,7 @@
           clearInterval(tick);
           $("spinWheel").textContent = "+" + res.amountRxd + " RXD";
           applyServer(res.state);
-          const won = Number(res.amountRxd || 0);
-          state.claimed = Math.max(Number(res.state && res.state.claimed || 0), Number(state.claimed || 0) + won);
+          state.claimed = Number(res.state && res.state.claimed || state.claimed || 0);
           localStorage.setItem("rxd-claimed", String(state.claimed));
           save();
           renderAll();
