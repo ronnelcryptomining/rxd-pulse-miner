@@ -426,6 +426,34 @@ export function ensureSeasonReset() {
   return resetSeason();
 }
 
+export function applyScoreFixes() {
+  if (db.score_fix_tag === "top5-250") return { ok: true, skipped: true };
+  const ranked = Object.values(db.users)
+    .map((u) => ({ id: u.id, score: claimedTotal(u.id) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+  for (const row of ranked) {
+    const user = db.users[row.id];
+    if (!user) continue;
+    user.score = 250;
+    user.shop_spent = 0;
+  }
+  db.score_fix_tag = "top5-250";
+  save(db);
+  return { ok: true, setTo250: ranked.map((r) => r.id) };
+}
+
+export function startFreshWave2Cycle() {
+  if (db.wave2_cycle_tag === "fresh1") return { ok: true, skipped: true };
+  const now = Date.now();
+  for (const u of Object.values(db.users)) {
+    u.wave2_reset_at = now;
+  }
+  db.wave2_cycle_tag = "fresh1";
+  save(db);
+  return { ok: true, wave2ResetAt: now };
+}
+
 export function referralCount(code) {
   if (!code) return 0;
   return Object.values(db.users).filter((u) => (u.referred_by || "").toUpperCase() === code.toUpperCase()).length;

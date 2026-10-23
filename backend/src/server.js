@@ -35,6 +35,8 @@ import {
   markTelegramMember,
   resetSeason,
   ensureSeasonReset,
+  applyScoreFixes,
+  startFreshWave2Cycle,
   activeBoosts,
   buyBoost,
   spinReady,
@@ -457,7 +459,7 @@ app.post("/api/quest/:name", async (req, res) => {
       payoutId,
       amountRxd,
       url: QUESTS[name],
-      pulseReady: WAVE2.includes(name) && !wasDone && wave2ClaimedCount(id) === WAVE2.length,
+      pulseReady: WAVE2.includes(name) && !wasDone && wave2ClaimedCount(id) === WAVE2.length && WAVE2.length === 6,
       wave2Claimed: wave2ClaimedCount(id),
       state: userState(id),
     });
@@ -520,7 +522,13 @@ app.post("/api/spin", (req, res) => {
     const user = bindWallet(req, id);
     if (!user || !user.address) return res.status(400).json({ error: "Connect a wallet first" });
     if (!spinReady(id)) return res.status(429).json({ error: "Spin already used today" });
-    const prizes = [1, 1, 2, 2, 5, 5, 8, 10, 15];
+    const prizes = [];
+    for (let i = 0; i < 40; i++) prizes.push(1);
+    for (let i = 0; i < 25; i++) prizes.push(2);
+    for (let i = 0; i < 10; i++) prizes.push(5);
+    for (let i = 0; i < 5; i++) prizes.push(8);
+    for (let i = 0; i < 2; i++) prizes.push(15);
+    for (let i = 0; i < 18; i++) prizes.push(1);
     const amountRxd = prizes[Math.floor(Math.random() * prizes.length)];
     markSpin(id, amountRxd);
     enqueuePayout({ userId: id, address: user.address, kind: "spin", amountRxd });
@@ -562,8 +570,10 @@ app.get("/health", (_req, res) => res.json({ ok: true, dryRun }));
 
 try {
   console.log("season check", ensureSeasonReset());
+  console.log("score fix", applyScoreFixes());
+  console.log("wave2 cycle", startFreshWave2Cycle());
 } catch (err) {
-  console.error("reset on boot failed", err.message);
+  console.error("boot fix failed", err.message);
 }
 
 const port = Number(process.env.PORT || 8787);
