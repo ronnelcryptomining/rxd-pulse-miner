@@ -64,7 +64,7 @@ const QUEST1_RXD = Number(process.env.QUEST1_RXD || 3);
 const QUEST2_RXD = Number(process.env.QUEST2_RXD || 2);
 const REF_RXD = Number(process.env.REF_RXD || 500);
 const WAVE1_MS = Number(process.env.WAVE1_COOLDOWN_MS || 24 * 60 * 60 * 1000);
-const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 60 * 60 * 1000);
+const WAVE2_MS = Number(process.env.WAVE2_COOLDOWN_MS || 2 * 60 * 60 * 1000);
 const VERIFY_MS = Number(process.env.QUEST_VERIFY_MS || 40 * 1000);
 const VERIFY2_MS = Number(process.env.QUEST2_VERIFY_MS || 50 * 1000);
 const WAVE1 = ["discord", "telegram", "x", "youtube", "facebook"];
@@ -145,10 +145,10 @@ async function requireTelegramMember(user) {
 }
 
 const SHOP = [
-  { id: "orb2x_6", boost: "orb2x", name: "2x Orb Rewards", hours: 6, price: 90, effect: "Orb pays double for 6 hours." },
-  { id: "orb30_6", boost: "orb30", name: "Orb 30-min Cooldown", hours: 6, price: 70, effect: "Orb is ready every 30 minutes for 6 hours." },
-  { id: "wave30_6", boost: "wave30", name: "Wave 2 30-min Cooldown", hours: 6, price: 55, effect: "Wave 2 tasks return in 30 minutes for 6 hours." },
-  { id: "auto_6", boost: "auto", name: "Orb Auto Claim", hours: 6, price: 140, effect: "Orb claims itself when ready for 6 hours." },
+  { id: "orb2x_6", boost: "orb2x", name: "2x Orb Rewards", hours: 6, price: 40, effect: "Orb pays double for 6 hours." },
+  { id: "orb30_6", boost: "orb30", name: "Orb 30-min Cooldown", hours: 6, price: 35, effect: "Orb is ready every 30 minutes for 6 hours." },
+  { id: "wave60_6", boost: "wave30", name: "Wave 2 1-hour Cooldown", hours: 6, price: 45, effect: "Wave 2 tasks return in 1 hour for 6 hours." },
+  { id: "auto_6", boost: "auto", name: "Orb Auto Claim", hours: 6, price: 25, effect: "Orb claims itself when ready for 6 hours." },
 ];
 SHOP.forEach((item) => { item.ms = item.hours * 60 * 60 * 1000; });
 
@@ -159,9 +159,9 @@ function shopDeals() {
   const day = dayKeyShop();
   const n = Number(day.slice(-2));
   const daily = [
-    { id: "daily", boost: "orb2x", name: "Daily Deal · 2x Orb", hours: 6, price: 60, effect: "Today only: 2x orb rewards for 6 hours.", ms: 6 * 60 * 60 * 1000 },
-    { id: "daily", boost: "orb30", name: "Daily Deal · Fast Orb", hours: 6, price: 45, effect: "Today only: 30-minute orb cooldown for 6 hours.", ms: 6 * 60 * 60 * 1000 },
-    { id: "daily", boost: "wave30", name: "Daily Deal · Fast Tasks", hours: 6, price: 35, effect: "Today only: Wave 2 returns in 30 minutes for 6 hours.", ms: 6 * 60 * 60 * 1000 },
+    { id: "daily", boost: "orb2x", name: "Daily Deal · 2x Orb", hours: 6, price: 25, effect: "Today only: 2x orb rewards for 6 hours.", ms: 6 * 60 * 60 * 1000 },
+    { id: "daily", boost: "orb30", name: "Daily Deal · Fast Orb", hours: 6, price: 20, effect: "Today only: 30-minute orb cooldown for 6 hours.", ms: 6 * 60 * 60 * 1000 },
+    { id: "daily", boost: "wave30", name: "Daily Deal · Fast Tasks", hours: 6, price: 30, effect: "Today only: Wave 2 returns in 1 hour for 6 hours.", ms: 6 * 60 * 60 * 1000 },
   ][n % 3];
   return { daily };
 }
@@ -176,7 +176,7 @@ function claimRxdFor(id) {
   return boostOn(id, "orb2x") ? CLAIM_RXD * 2 : CLAIM_RXD;
 }
 function wave2MsFor(id) {
-  return boostOn(id, "wave30") ? 30 * 60 * 1000 : WAVE2_MS;
+  return boostOn(id, "wave30") ? 60 * 60 * 1000 : WAVE2_MS;
 }
 function applyBoostPurchase(id, item) {
   if (item.boost === "bundle_pulse") {
@@ -370,7 +370,7 @@ app.post("/api/blitz", (req, res) => {
     const allowed = kind === "wave2" ? wave2Complete(id) : blitzUnlocked(id);
     if (!BLITZ_TEST && !allowed) return res.status(403).json({ error: "Locked" });
     const hits = Math.max(0, Math.min(80, Number(req.body.hits || 0)));
-    const amountRxd = hits * 0.5;
+    const amountRxd = hits * 0.1;
     markBlitz(id, kind);
     if (amountRxd > 0) {
       enqueuePayout({
@@ -457,7 +457,7 @@ app.post("/api/quest/:name", async (req, res) => {
       payoutId,
       amountRxd,
       url: QUESTS[name],
-      pulseReady: WAVE2.includes(name) && wave2ClaimedCount(id) === WAVE2.length,
+      pulseReady: WAVE2.includes(name) && !wasDone && wave2ClaimedCount(id) === WAVE2.length,
       wave2Claimed: wave2ClaimedCount(id),
       state: userState(id),
     });

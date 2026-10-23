@@ -81,6 +81,7 @@ export function touchStreak(id) {
   if (gate >= 3 && (user.wave1_gate || 0) < gate) {
     user.wave1_gate = gate;
     user.wave1_reset_at = Date.now();
+    user.wave2_reset_at = Date.now();
   }
   save(db);
   return user;
@@ -183,16 +184,8 @@ export function upsertUser(id, address, extra = {}) {
   return db.users[id];
 }
 
-export function restoreScore(id, savedScore) {
-  const user = getUser(id);
-  if (!user) return null;
-  if (user.score_reset_at && Date.now() - user.score_reset_at < 6 * 60 * 60 * 1000 && Number(user.score || 0) === 0) return user;
-  const n = Number(savedScore || 0);
-  if (n > 0 && n < 100000000 && Number(user.score || 0) < n) {
-    user.score = n;
-    save(db);
-  }
-  return user;
+export function restoreScore() {
+  return null;
 }
 
 export function findByTelegramId(tgId) {
@@ -494,7 +487,7 @@ export function payoutReport() {
 
 export function maybePayReferrer(user) {
   if (!user || user.referral_paid || !user.referred_by) return null;
-  if (!user.verified || (user.mine_count || 0) < 1) return null;
+  if (!user.verified || (user.login_days || 0) < 2 || (user.mine_count || 0) < 2) return null;
   const referrer = findByRef(user.referred_by);
   if (!referrer || referrer.id === user.id) return null;
   user.referral_paid = true;
@@ -514,7 +507,7 @@ export function wave1Complete(id) {
 
 export function wave2ClaimedCount(id) {
   const user = getUser(id);
-  const reset = (user && user.wave2_reset_at) || 0;
+  const reset = Math.max((user && user.wave2_reset_at) || 0, db.season_started_at || 0);
   const qs = listQuests(id);
   return WAVE2_NAMES.filter((name) => qs.some((q) => q.quest === name && q.completed_at > reset)).length;
 }
